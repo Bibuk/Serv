@@ -7,7 +7,6 @@ const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export type { TeamDetail } from './mappers';
 
-// Build mock team objects by grouping the mock TEAM users by their team name.
 function mockTeams(): TeamDetail[] {
   const byName = new Map<string, typeof TEAM>();
   for (const u of TEAM) {

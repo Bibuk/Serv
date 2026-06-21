@@ -17,7 +17,6 @@ from app.models.notification import NotificationEntityType
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
-# §4.1 ticket lifecycle: new → processing → accepted → closed (↘ rejected)
 _TICKET_TRANSITIONS = {
     TicketStatus.new: {TicketStatus.processing, TicketStatus.rejected},
     TicketStatus.processing: {TicketStatus.accepted, TicketStatus.rejected},
@@ -25,7 +24,6 @@ _TICKET_TRANSITIONS = {
     TicketStatus.rejected: set(),
     TicketStatus.closed: set(),
 }
-# Statuses the client is notified about (§6.2)
 _CLIENT_NOTIFY_STATUSES = {TicketStatus.accepted, TicketStatus.rejected, TicketStatus.closed}
 
 
@@ -52,7 +50,6 @@ async def list_tickets(
 ):
     filters = []
 
-    # Clients only see their own tickets
     if current_user.role == UserRole.client:
         filters.append(Ticket.client_id == current_user.id)
 
@@ -143,7 +140,6 @@ async def get_ticket(
     if current_user.role == UserRole.client and ticket.client_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    # §4.1: auto-transition new → processing when a manager opens the ticket
     if current_user.role in (UserRole.manager, UserRole.admin) and ticket.status == TicketStatus.new:
         ticket.status = TicketStatus.processing
         ticket.updated_at = datetime.now(timezone.utc)
@@ -191,7 +187,6 @@ async def update_ticket(
             db, current_user.id, "ticket.status_changed", ticket.id,
             {"old": old_status.value, "new": new_status.value},
         )
-        # Notify client only on client-facing statuses (§6.2)
         if new_status in _CLIENT_NOTIFY_STATUSES:
             await create_notification(
                 db=db,

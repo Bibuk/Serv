@@ -1,5 +1,3 @@
-// Shared shell constants. Kept out of the *Shell component files so those
-// modules export only components (required for React Fast Refresh).
 
 export const ROLE_LABEL: Record<string, string> = {
   manager:  'Менеджер',

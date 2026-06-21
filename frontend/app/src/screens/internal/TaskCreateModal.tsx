@@ -23,7 +23,6 @@ interface FormState {
   ticket: string;
 }
 
-// Backend priority enum supports high/medium/low only — 'critical' is omitted.
 const PRIORITY_OPTIONS = [
   { value: 'high',   label: 'Высокий' },
   { value: 'medium', label: 'Средний' },
@@ -71,16 +70,11 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSubmit, prefill })
   const effectiveTeam = form.team || autoTeamId;
   const recommendedTeamName = autoTeamId ? teams.find(t => t.id === autoTeamId)?.name : '';
 
-  // Id of the draft once it's been auto-persisted. Lets later keystrokes PATCH
-  // the same task instead of creating duplicates.
   const draftIdRef = React.useRef<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
 
-  // Persist the in-progress draft. The backend requires a service (service_id is
-  // a non-null FK), so we hold off until both a title and a service are present;
-  // until then there's nothing meaningful to lose.
   const persistDraft = React.useCallback(async () => {
-    if (fromTicket) return; // ticket→task is a single atomic create+link, no draft
+    if (fromTicket) return;
     if (!form.title.trim() || !form.service) return;
     if (!draftIdRef.current) {
       const task = await createTask({
@@ -146,8 +140,7 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSubmit, prefill })
     setSubmitting(true);
     setApiError(null);
     try {
-      // Make sure the latest draft is persisted, then promote it to assigned.
-      await autosave.flush().catch(() => { /* fall through to create path */ });
+      await autosave.flush().catch(() => { });
       const taskId = draftIdRef.current ?? (await createTask({
         title: form.title.trim(),
         desc: form.desc.trim(),
@@ -161,10 +154,9 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSubmit, prefill })
       const assigned = await assignTask(taskId, effectiveTeam);
       let linkedTicket: Ticket | undefined;
       if (form.ticket) {
-        try { linkedTicket = await linkTaskToTicket(form.ticket, assigned.id); } catch { /* best-effort */ }
+        try { linkedTicket = await linkTaskToTicket(form.ticket, assigned.id); } catch { }
       }
       const final = { ...assigned, ticket: form.ticket || assigned.ticket };
-      // The draft may already be in the store — replace it, otherwise add.
       setTasks(prev => prev.some(t => t.id === final.id)
         ? prev.map(t => (t.id === final.id ? final : t))
         : [final, ...prev]);

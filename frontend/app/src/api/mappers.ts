@@ -1,18 +1,9 @@
-// Adapter layer between the backend API shape and the frontend domain types.
-//
-// The backend returns normalised, snake_case payloads wrapped in pagination
-// envelopes ({ items, total, page, size, pages }) and uses canonical enum
-// values (in_progress, rejected, archived, processing, …). The frontend was
-// built against flat camelCase mock data with abbreviated enum values
-// (inprog, reject, archive, …). These mappers translate between the two so
-// the rest of the app keeps working against the frontend types unchanged.
 
 import type {
   Task, Ticket, Subtask, User, AuditEntry, Comment, TaskStatus, SubtaskStatus, TicketStatus, Priority, Role,
 } from '../types';
 import type { NotificationDto } from './notifications';
 
-// ── Pagination envelope ─────────────────────────────────────────────────────
 
 export interface Paginated<T> {
   items: T[];
@@ -22,14 +13,12 @@ export interface Paginated<T> {
   pages: number;
 }
 
-// Accepts either a paginated envelope or a bare array and always returns items.
 export function unwrap<T>(data: Paginated<T> | T[]): T[] {
   if (Array.isArray(data)) return data;
   if (data && Array.isArray((data as Paginated<T>).items)) return (data as Paginated<T>).items;
   return [];
 }
 
-// ── Status translation ──────────────────────────────────────────────────────
 
 const TASK_STATUS_TO_FRONTEND: Record<string, TaskStatus> = {
   draft: 'draft',
@@ -77,9 +66,6 @@ export const toFrontendTicketStatus = (s: string): TicketStatus =>
 export const toBackendTicketStatus = (s: TicketStatus): string =>
   TICKET_STATUS_TO_BACKEND[s] ?? s;
 
-// Subtasks use a distinct backend enum (todo/in_progress/blocked/done). The
-// frontend mirrors it with its own SubtaskStatus vocabulary so a blocked
-// subtask is never conflated with a task in review.
 const SUBTASK_STATUS_TO_FRONTEND: Record<string, SubtaskStatus> = {
   todo: 'todo',
   in_progress: 'inprog',
@@ -99,10 +85,7 @@ export const toFrontendSubtaskStatus = (s: string): SubtaskStatus =>
 export const toBackendSubtaskStatus = (s: string): string =>
   SUBTASK_STATUS_TO_BACKEND[s] ?? s;
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
-// Backend deadlines/created dates are ISO datetimes; several frontend screens
-// treat deadlines as date-only strings (e.g. `new Date(deadline + 'T23:59:59')`).
 const dateOnly = (iso: string | null | undefined): string =>
   iso ? iso.slice(0, 10) : '';
 
@@ -121,7 +104,6 @@ const colorFor = (id: string): string => {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 };
 
-// ── Raw backend shapes (only the fields we consume) ─────────────────────────
 
 interface RawUserOut {
   id: string;
@@ -206,7 +188,6 @@ interface RawAuditOut {
   user_email?: string | null;
 }
 
-// ── Mappers: backend → frontend ─────────────────────────────────────────────
 
 export function mapUser(u: RawUserOut): User {
   return {
@@ -223,7 +204,6 @@ export function mapUser(u: RawUserOut): User {
   };
 }
 
-// ── Teams ───────────────────────────────────────────────────────────────────
 
 interface RawTeamOut {
   id: string;

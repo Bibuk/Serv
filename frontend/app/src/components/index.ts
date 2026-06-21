@@ -8,3 +8,4 @@ export { Donut } from './Donut';
 export { LineChart } from './LineChart';
 export { SLABadge } from './SLABadge';
 export { ReasonModal } from './ReasonModal';
+export { Attachments } from './Attachments';

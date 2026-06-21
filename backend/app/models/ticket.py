@@ -66,7 +66,6 @@ class Ticket(Base, UUIDMixin, TimestampMixin):
         nullable=False,
     )
 
-    # Relationships
     client: Mapped["User"] = relationship(
         "User",
         foreign_keys=[client_id],

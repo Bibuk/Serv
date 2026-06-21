@@ -6,13 +6,11 @@ from typing import List, Optional
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/2ltp"
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
-    DB_POOL_RECYCLE: int = 1800  # recycle connections every 30 min
+    DB_POOL_RECYCLE: int = 1800
 
-    # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: Optional[str] = None
 
@@ -27,20 +25,17 @@ class Settings(BaseSettings):
                 return f"{scheme}://:{self.REDIS_PASSWORD}@{rest}"
         return self.REDIS_URL
 
-    # JWT — no default, must be set in environment
     JWT_SECRET_KEY: str = Field(..., min_length=32)
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600  # 1 year — no expiry-driven logouts
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 3650      # 10 years
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 3650
 
-    # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
 
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
-    # Email
     MAIL_USERNAME: str = "no-reply@example.com"
     MAIL_PASSWORD: str = ""
     MAIL_FROM: str = "no-reply@example.com"
@@ -49,11 +44,9 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
 
-    # File storage
     UPLOAD_DIR: str = "/app/uploads"
     MAX_UPLOAD_SIZE_MB: int = 50
 
-    # App
     APP_ENV: str = "development"
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000

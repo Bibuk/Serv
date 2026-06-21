@@ -15,9 +15,6 @@ interface Props {
   setTasks: (fn: (prev: Task[]) => Task[]) => void;
 }
 
-// The active board intentionally has NO "Выполнена" column: once a manager
-// approves a task (review → done) it leaves the board and moves to the
-// separate "Выполненные" view below, so the board only shows live work.
 const COLUMNS: { id: TaskStatus; label: string; dot: string }[] = [
   { id: 'assigned', label: 'Назначена',   dot: 'kcol__dot-assigned' },
   { id: 'inprog',   label: 'В работе',    dot: 'kcol__dot-inprog' },
@@ -98,9 +95,6 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
   };
 
   const teamTasks = tasks.filter(t => t.team === teamName);
-  // Active board excludes finished work. The "Выполненные" view holds approved
-  // (done) tasks only — once the teamlead removes one it's archived and gone
-  // from their side entirely; only a manager can bring it back.
   const activeTasks = teamTasks.filter(t => t.status !== 'done' && t.status !== 'archive');
   const completedTasks = teamTasks.filter(t => t.status === 'done');
   const inprogCount = teamTasks.filter(t => t.status === 'inprog').length;
@@ -113,7 +107,6 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
     return dl < new Date() && t.status !== 'done' && t.status !== 'archive';
   }).length;
 
-  // Active subtask count per member (for workload display in sidebar and team view)
   const subtasksByWorker = React.useMemo(() => {
     const map: Record<string, number> = {};
     teamTasks.forEach(t => t.subtasks.forEach(s => {
@@ -124,7 +117,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
 
   return (
     <div>
-      {/* Page header */}
+      {}
       <div className="page-header">
         <div>
           <h1 className="page-title">{`Команда ${teamName}`}</h1>
@@ -173,7 +166,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
         </div>
       </div>
 
-      {/* Stats */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
         <Stat label="В работе" value={inprogCount} />
         <Stat label="На проверке" value={reviewCount} />
@@ -182,7 +175,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
         <Stat label="Просрочено" value={overdueCount} alert={overdueCount > 0} />
       </div>
 
-      {/* Team view — member-centric */}
+      {}
       {view === 'team' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {teamLoading ? (
@@ -253,7 +246,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
         </div>
       )}
 
-      {/* Completed (approved) + archived tasks live here, off the active board */}
+      {}
       {view === 'done' && (
         <div className="card">
           <div className="card__head">
@@ -311,11 +304,11 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
         </div>
       )}
 
-      {/* Kanban + List views share the two-column layout */}
+      {}
       {(view === 'kanban' || view === 'list') && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 16 }}>
           <div>
-            {/* Kanban */}
+            {}
             {view === 'kanban' && (
               <div className="kanban" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 {COLUMNS.map(col => {
@@ -356,7 +349,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
                                 <PriorityBadge priority={task.priority} />
                               </div>
 
-                              {/* Subtask progress */}
+                              {}
                               {totalSubs > 0 && (
                                 <div style={{ marginTop: 8 }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--c-gray-500)', marginBottom: 3 }}>
@@ -369,14 +362,14 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
                                 </div>
                               )}
 
-                              {/* Rejection reason */}
+                              {}
                               {task.status === 'reject' && task.rejectReason && (
                                 <div style={{ marginTop: 8, padding: '6px 8px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6, fontSize: 11, color: '#92400E', lineHeight: 1.4 }}>
                                   <strong>Причина:</strong> {task.rejectReason}
                                 </div>
                               )}
 
-                              {/* Workflow shortcuts */}
+                              {}
                               {(task.status === 'assigned' || task.status === 'inprog' || task.status === 'reject') && (
                                 <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
                                   {task.status === 'assigned' && (
@@ -450,7 +443,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
               </div>
             )}
 
-            {/* List */}
+            {}
             {view === 'list' && (
               <div className="card">
                 <div className="card__body--flush">
@@ -535,7 +528,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
             )}
           </div>
 
-          {/* Team sidebar */}
+          {}
           <div className="card" style={{ alignSelf: 'start' }}>
             <div className="card__head">
               <span className="card__title">{`Команда ${teamName}`}</span>

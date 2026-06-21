@@ -6,7 +6,6 @@ import type { Service, App } from '../types';
 const USE_MOCK = import.meta.env.VITE_API_MOCK !== 'false';
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-// ── Services ────────────────────────────────────────────────────────────────
 
 interface RawServiceOut {
   id: string;
@@ -55,7 +54,6 @@ export interface ServiceDto {
   status?: 'active' | 'archived';
 }
 
-// Translate the camelCase frontend DTO to the snake_case API payload.
 const serviceBody = (dto: ServiceDto, forCreate: boolean) => ({
   ...(forCreate || dto.name !== undefined ? { name: dto.name } : {}),
   ...(dto.description !== undefined && { description: dto.description }),
@@ -83,7 +81,6 @@ export async function deleteService(id: string): Promise<void> {
   await apiClient.delete(`/services/${id}`);
 }
 
-// ── Applications ────────────────────────────────────────────────────────────
 
 interface RawAppOut {
   id: string;
@@ -126,7 +123,6 @@ export async function updateApplication(id: string, dto: AppDto & { status?: 'ac
   }));
 }
 
-// Archive via the dedicated endpoint; re-activate via a normal status update.
 export async function setApplicationArchived(id: string, archived: boolean): Promise<App> {
   if (USE_MOCK) { await delay(120); return { id, name: '', color: '#2563EB', services: [], status: archived ? 'archived' : 'active' }; }
   if (archived) return mapApp(await apiClient.patch(`/applications/${id}/archive`));

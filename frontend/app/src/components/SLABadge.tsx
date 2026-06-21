@@ -2,8 +2,6 @@ import React from 'react';
 import type { SLAInfo } from '../utils/sla';
 import { SLA_COLORS, SLA_LABELS, formatSLALeft } from '../utils/sla';
 
-// Compact SLA indicator: a coloured dot plus the remaining/overdue time.
-// Renders nothing for tasks without a configured SLA unless `showNone` is set.
 export const SLABadge: React.FC<{ info: SLAInfo; showNone?: boolean }> = ({ info, showNone }) => {
   if (info.state === 'none' && !showNone) return null;
   const color = SLA_COLORS[info.state];

@@ -36,7 +36,6 @@ async def update_me(
 ):
     """Update the currently authenticated user's own profile (full_name, notify_email)."""
     update_data = body.model_dump(exclude_unset=True)
-    # Strip privileged fields — users cannot change their own role/team/active status
     for field in ("role", "team_id", "is_active", "password"):
         update_data.pop(field, None)
 
@@ -121,7 +120,6 @@ async def get_user(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Allow users to view their own profile; admins can view any
     if current_user.role != UserRole.admin and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
@@ -139,7 +137,6 @@ async def update_user(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Users can update their own profile (except role/team); admins can update anything
     if current_user.role != UserRole.admin and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
@@ -150,7 +147,6 @@ async def update_user(
 
     update_data = body.model_dump(exclude_unset=True)
 
-    # Non-admins cannot change role or team_id
     if current_user.role != UserRole.admin:
         update_data.pop("role", None)
         update_data.pop("team_id", None)

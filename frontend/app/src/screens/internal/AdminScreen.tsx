@@ -71,7 +71,6 @@ const teamColor = (name: string): string => {
   return TEAM_COLORS[s % TEAM_COLORS.length];
 };
 
-// ── Shared primitives ───────────────────────────────────────────────────────
 
 const Avatar: React.FC<{ user: { name: string; avatar: string; color: string }; size?: number }> = ({ user, size = 32 }) => (
   <span
@@ -227,7 +226,6 @@ const SearchSelect: React.FC<{
   );
 };
 
-// ── Users ───────────────────────────────────────────────────────────────────
 
 interface UserFormState { name: string; email: string; password: string; role: Role | 'client'; teamId: string }
 const emptyUserForm: UserFormState = { name: '', email: '', password: '', role: 'worker', teamId: '' };
@@ -472,7 +470,6 @@ const AdminUsers: React.FC = () => {
   );
 };
 
-// ── Teams ───────────────────────────────────────────────────────────────────
 
 interface TeamFormState { name: string; teamleadId: string; iconKey: string }
 
@@ -494,7 +491,6 @@ const AdminTeams: React.FC = () => {
 
   const leadCandidates = (usersQ.data ?? []).filter(u => u.role !== 'client' && u.active !== false);
 
-  // Live editing team — auto-updates after invalidation
   const editingTeam = editingTeamId ? (teamsQ.data?.find(t => t.id === editingTeamId) ?? null) : null;
   const currentMemberIds = useMemo(() => new Set(editingTeam?.members.map(m => m.id) ?? []), [editingTeam]);
   const availableToAdd = useMemo(
@@ -756,7 +752,6 @@ const AdminTeams: React.FC = () => {
   );
 };
 
-// ── Audit log ───────────────────────────────────────────────────────────────
 
 const KIND_OPTIONS = ['all', 'create', 'update', 'delete', 'login'] as const;
 const KIND_LABELS: Record<string, string> = { all: 'Все действия', create: 'Создание', update: 'Изменение', delete: 'Удаление', login: 'Вход' };

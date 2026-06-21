@@ -84,7 +84,6 @@ export async function updateUser(id: string, dto: AdminUserUpdateDto): Promise<U
   }));
 }
 
-// Soft-delete: backend sets is_active = false.
 export async function deactivateUser(id: string): Promise<void> {
   if (USE_MOCK) { await delay(120); return; }
   await apiClient.delete(`/users/${id}`);

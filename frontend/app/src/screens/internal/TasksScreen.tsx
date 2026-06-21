@@ -36,8 +36,6 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
     if (initialSearch !== undefined) { setSearch(initialSearch); setPage(1); }
   }, [initialSearch]);
 
-  // Filter options come from the real catalogs (shared React Query cache),
-  // not mock data, so they're correct against backend tasks.
   const teamsQ = useQuery({ queryKey: ['teams'], queryFn: () => getTeams() });
   const servicesQ = useQuery({ queryKey: ['services'], queryFn: () => getServices() });
   const teams = React.useMemo(() => (teamsQ.data ?? []).map(t => ({ id: t.id, name: t.name })), [teamsQ.data]);
@@ -110,7 +108,6 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
   const handleArchiveSelected = () => archiveM.mutate(Array.from(selected));
   const handleDeleteSelected = () => deleteM.mutate(Array.from(selected));
 
-  // Manager-only: reopen a finished (done/archived) task back into work.
   const reopenM = useMutation({
     mutationFn: (id: string) => updateTaskStatus(id, 'inprog'),
     onSuccess: (_d, id) => {
@@ -132,7 +129,7 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
 
   return (
     <div>
-      {/* Page header */}
+      {}
       <div className="page-header">
         <div>
           <h1 className="page-title">Задачи</h1>
@@ -150,7 +147,7 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
         </div>
       </div>
 
-      {/* Filters */}
+      {}
       <div className="filters">
         <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 280 }}>
           <input
@@ -192,7 +189,7 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
         )}
       </div>
 
-      {/* Bulk action bar */}
+      {}
       {selectedCount > 0 && (
         <div style={{
           background: '#EFF6FF',
@@ -224,7 +221,7 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
         </div>
       )}
 
-      {/* Table */}
+      {}
       <div className="card">
         <div className="card__body--flush">
           <table className="table">
@@ -305,7 +302,7 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
           </table>
         </div>
 
-        {/* Pagination */}
+        {}
         <div style={{
           display: 'flex',
           alignItems: 'center',

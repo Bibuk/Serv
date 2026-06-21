@@ -12,8 +12,8 @@ ALLOWED_MIME_TYPES = {
     "image/jpeg",
     "image/gif",
     "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # docx
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # xlsx
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/zip",
     "application/x-tar",
     "application/gzip",
@@ -38,7 +38,6 @@ def _get_file_path(owner_key: str, file_id: uuid.UUID, filename: str) -> Path:
     owner_dir.mkdir(parents=True, exist_ok=True)
     safe_filename = "".join(c for c in filename if c.isalnum() or c in "._- ").strip()
     path = (owner_dir / f"{file_id}_{safe_filename}").resolve()
-    # Prevent path traversal
     if not _is_within_upload_dir(path):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
     return path
@@ -53,7 +52,6 @@ async def save_file(
     `owner_key` scopes the storage directory (subtask UUID or "task/<uuid>").
     Returns: (file_id, filename, content_type, size_bytes, path)
     """
-    # Read first 2KB for content-based MIME detection
     header = await file.read(2048)
     detected_mime = magic.from_buffer(header, mime=True)
     if detected_mime not in ALLOWED_MIME_TYPES:
@@ -66,7 +64,7 @@ async def save_file(
     file_path = _get_file_path(owner_key, file_id, file.filename or "unnamed")
 
     size_bytes = len(header)
-    chunk_size = 64 * 1024  # 64KB chunks
+    chunk_size = 64 * 1024
     too_large = False
 
     try:
@@ -82,7 +80,6 @@ async def save_file(
                     break
                 await out_file.write(chunk)
     except Exception:
-        # Don't leave a half-written file behind on any write failure.
         if file_path.exists():
             os.unlink(file_path)
         raise

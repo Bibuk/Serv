@@ -36,7 +36,6 @@ class Notification(Base, UUIDMixin, TimestampMixin):
     entity_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # Relationships
     user: Mapped["User"] = relationship(
         "User",
         back_populates="notifications",

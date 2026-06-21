@@ -15,7 +15,6 @@ async def get_current_user(
 ) -> User:
     token = request.cookies.get("access_token")
     if not token:
-        # Also check Authorization header as fallback (for WebSocket upgrades etc.)
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]

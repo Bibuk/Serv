@@ -46,7 +46,6 @@ class User(Base, UUIDMixin, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_email: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    # Relationships
     team: Mapped[Optional["Team"]] = relationship(
         "Team",
         foreign_keys=[team_id],

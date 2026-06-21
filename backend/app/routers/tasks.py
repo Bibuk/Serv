@@ -26,12 +26,10 @@ from app.services.file_storage import save_file, delete_file, get_file_path
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
-# Frontend uses short aliases; map them to backend enum values
 _STATUS_ALIAS: dict[str, TaskStatus] = {
     "inprog":   TaskStatus.in_progress,
     "reject":   TaskStatus.rejected,
     "archive":  TaskStatus.archived,
-    # canonical values pass through
     "draft":    TaskStatus.draft,
     "assigned": TaskStatus.assigned,
     "in_progress": TaskStatus.in_progress,
@@ -41,27 +39,19 @@ _STATUS_ALIAS: dict[str, TaskStatus] = {
     "archived": TaskStatus.archived,
 }
 
-# Reverse map: backend → frontend alias for API responses
 _STATUS_TO_FRONTEND: dict[str, str] = {
     "in_progress": "inprog",
     "rejected":    "reject",
     "archived":    "archive",
 }
 
-# Allowed transitions for the generic /status endpoint. The dedicated
-# assign/accept/submit-review/approve/reject endpoints carry the strict role
-# checks; this map keeps the generic endpoint from making illegal jumps (e.g.
-# draft → done) that would corrupt the lifecycle. A no-op (same status) is
-# always permitted.
 _ALLOWED_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
     TaskStatus.draft:       {TaskStatus.assigned, TaskStatus.archived},
     TaskStatus.assigned:    {TaskStatus.in_progress, TaskStatus.draft, TaskStatus.archived},
     TaskStatus.in_progress: {TaskStatus.review, TaskStatus.assigned, TaskStatus.archived},
     TaskStatus.review:      {TaskStatus.done, TaskStatus.rejected, TaskStatus.in_progress, TaskStatus.archived},
-    # A done task can be removed (archived) by the team, or reopened by a manager.
     TaskStatus.done:        {TaskStatus.review, TaskStatus.in_progress, TaskStatus.archived},
     TaskStatus.rejected:    {TaskStatus.assigned, TaskStatus.in_progress, TaskStatus.archived},
-    # Restoring from the archive is a manager-only action (enforced below).
     TaskStatus.archived:    {TaskStatus.draft, TaskStatus.in_progress, TaskStatus.assigned},
 }
 
@@ -85,7 +75,6 @@ async def _close_linked_ticket(db: AsyncSession, task: Task) -> None:
         if ticket and ticket.status not in (TicketStatus.closed, TicketStatus.rejected):
             ticket.status = TicketStatus.closed
             ticket.updated_at = datetime.now(timezone.utc)
-            # Real-time signal to the requester that their ticket is resolved.
             await create_notification(
                 db=db,
                 user_id=ticket.client_id,
@@ -132,7 +121,6 @@ async def list_tasks(
 ):
     filters = []
 
-    # Clients cannot list tasks
     if current_user.role == UserRole.client:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Clients cannot view tasks")
 
@@ -154,7 +142,6 @@ async def list_tasks(
         base_q = base_q.where(and_(*filters))
 
     if q:
-        # Full-text search using tsvector
         search_filter = text("tasks.search_vector @@ plainto_tsquery('russian', :q)").bindparams(q=q)
         base_q = base_q.where(search_filter)
 
@@ -285,24 +272,18 @@ async def update_task(
 
     update_data = body.model_dump(exclude_unset=True)
 
-    # Status changes must go through the dedicated transition endpoints so the
-    # state machine and side effects (ticket auto-close, notifications) hold.
     if "status" in update_data:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Use the assign/accept/submit-review/approve/reject endpoints to change task status",
         )
 
-    # Finished work is read-only — reopen the task first to edit it. Any active
-    # status (draft/assigned/in_progress/review/rejected) is freely editable, so
-    # managers can fix a title/deadline mid-flight without hitting a wall.
     if task.status in (TaskStatus.done, TaskStatus.archived):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Завершённую задачу нельзя редактировать — сначала верните её в работу",
         )
 
-    # Teamleads can only edit tasks belonging to their own team
     if current_user.role == UserRole.teamlead and task.team_id != current_user.team_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -355,7 +336,6 @@ async def assign_task(
             detail=f"Cannot assign task in status '{task.status.value}'",
         )
 
-    # Verify team exists
     team_result = await db.execute(select(Team).where(Team.id == body.team_id))
     team = team_result.scalar_one_or_none()
     if not team:
@@ -363,13 +343,12 @@ async def assign_task(
 
     task.team_id = body.team_id
     task.status = TaskStatus.assigned
-    task.reject_reason = None  # fresh assignment clears any prior rejection context
+    task.reject_reason = None
     task.updated_at = datetime.now(timezone.utc)
     await db.flush()
 
     await _log_audit(db, current_user.id, "task.assigned", task.id, {"team_id": str(body.team_id)})
 
-    # Notify teamlead
     if team.teamlead_id:
         await create_notification(
             db=db,
@@ -401,7 +380,6 @@ async def accept_task(
             detail="Task must be in 'assigned' status to accept",
         )
 
-    # Teamlead must belong to the assigned team
     if current_user.role == UserRole.teamlead and task.team_id != current_user.team_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not the teamlead for this task's team")
 
@@ -435,8 +413,6 @@ async def submit_review(
     if current_user.role == UserRole.teamlead and task.team_id != current_user.team_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your team's task")
 
-    # A decomposed task can only be submitted once every subtask is done.
-    # Tasks without subtasks are allowed through (not everything is decomposed).
     subtasks = (
         await db.execute(select(Subtask).where(Subtask.task_id == task_id))
     ).scalars().all()
@@ -453,7 +429,6 @@ async def submit_review(
 
     await _log_audit(db, current_user.id, "task.submitted_review", task.id)
 
-    # Notify all managers
     await _notify_managers(
         db=db,
         title="Task submitted for review",
@@ -489,7 +464,6 @@ async def approve_task(
     await _log_audit(db, current_user.id, "task.approved", task.id)
     await _close_linked_ticket(db, task)
 
-    # Notify teamlead
     if task.team_id:
         team_result = await db.execute(select(Team).where(Team.id == task.team_id))
         team = team_result.scalar_one_or_none()
@@ -523,8 +497,6 @@ async def update_task_status(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-    # Teamleads may only move their own team's tasks; managers/admins are
-    # unrestricted. Workers cannot reach task-level transitions at all.
     if current_user.role == UserRole.teamlead and task.team_id != current_user.team_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -544,16 +516,12 @@ async def update_task_status(
             detail=f"Unknown status value: {raw_status!r}",
         )
 
-    # Validate against the state machine so the generic endpoint can't make
-    # illegal jumps. Same-status is a silent no-op.
     if new_status != task.status and new_status not in _ALLOWED_TRANSITIONS.get(task.status, set()):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Недопустимый переход: '{task.status.value}' → '{new_status.value}'",
         )
 
-    # Reopening/restoring finished work belongs to managers only. A teamlead may
-    # archive a done task (remove it from their board) but cannot bring it back.
     is_manager = current_user.role in (UserRole.manager, UserRole.admin)
     reopening_done = task.status == TaskStatus.done and new_status != TaskStatus.archived
     restoring_archive = task.status == TaskStatus.archived
@@ -564,7 +532,6 @@ async def update_task_status(
         )
 
     task.status = new_status
-    # Clear the rejection reason once the task moves out of the rejected state.
     if new_status != TaskStatus.rejected:
         task.reject_reason = None
     task.updated_at = datetime.now(timezone.utc)
@@ -606,7 +573,6 @@ async def reject_task(
         {"reason": body.reason},
     )
 
-    # Notify teamlead
     if task.team_id:
         team_result = await db.execute(select(Team).where(Team.id == task.team_id))
         team = team_result.scalar_one_or_none()
@@ -624,7 +590,6 @@ async def reject_task(
     return TaskOut.model_validate(task)
 
 
-# ── File attachments ─────────────────────────────────────────────────────────
 
 async def _get_task_or_404(db: AsyncSession, task_id: uuid.UUID) -> Task:
     result = await db.execute(select(Task).where(Task.id == task_id))

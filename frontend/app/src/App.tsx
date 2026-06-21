@@ -9,13 +9,10 @@ import { useTokenRefresh } from './hooks/useTokenRefresh';
 import { setUnauthorizedHandler } from './api/client';
 import type { Role } from './types';
 
-// 'client' | 'internal' | undefined (undefined = без ограничений, dev)
 const PORTAL = import.meta.env.VITE_PORTAL as 'client' | 'internal' | undefined;
 
-// Shells
 import { InternalShell, ClientShell, SidebarIcon } from './shells';
 
-// Internal screens
 import { LoginScreen } from './screens/internal/LoginScreen';
 import { ManagerDashboard } from './screens/internal/ManagerDashboard';
 import { ManagerReviewScreen } from './screens/internal/ManagerReviewScreen';
@@ -31,7 +28,6 @@ import { ServicesScreen } from './screens/internal/ServicesScreen';
 import { AdminScreen } from './screens/internal/AdminScreen';
 import { ManagerTicketsScreen } from './screens/internal/ManagerTicketsScreen';
 
-// Client screens
 import { ClientTicketsList } from './screens/client/ClientTicketsList';
 import { ClientTicketPage } from './screens/client/ClientTicketPage';
 import { ClientCreateTicket } from './screens/client/ClientCreateTicket';
@@ -135,7 +131,6 @@ const renderScreen = (
 ): React.ReactNode => {
   const goto = (s: string, p: Record<string, string> = {}) => setScreen(s, p);
   const openDrawer = (id: string) => setDrawerTaskId(id);
-  // Generic "create task" entry points start from a blank form (no ticket).
   const openCreate = () => useAppStore.getState().openCreateTask();
 
   if (screen === 'login') {
@@ -209,8 +204,6 @@ const AppContent: React.FC = () => {
   const { isChecking } = useSession();
   const isAuthenticated = currentUser !== null;
 
-  // Track viewport so the client portal can switch to its full-screen
-  // touch layout on phones. matchMedia avoids resize-event spam.
   React.useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)');
     const apply = () => setMobile(mq.matches);
@@ -219,13 +212,9 @@ const AppContent: React.FC = () => {
     return () => mq.removeEventListener('change', apply);
   }, [setMobile]);
 
-  // Fetch real data from backend once authenticated (no-op in mock mode)
   useBootstrap(isAuthenticated);
-  // Proactively refresh the access token every 13 min (token lives 15 min).
-  // This prevents 401-triggered logout cycles during active sessions.
   useTokenRefresh(isAuthenticated);
 
-  // Auth guard: force login if not authenticated (e.g. direct URL access, expired session)
   const effectiveScreen = (!isAuthenticated && screen !== 'login') ? 'login' : screen;
 
   if (isChecking) return <SessionLoader />;
@@ -275,7 +264,6 @@ const AppContent: React.FC = () => {
             if (linkedTicket) {
               setTickets(prev => prev.map(t => t.id === linkedTicket.id ? { ...t, ...linkedTicket } : t));
             } else if (task.ticket) {
-              // Fallback: reflect the link locally even if the link API was a no-op.
               setTickets(prev => prev.map(t => t.id === task.ticket ? { ...t, taskId: task.id, status: 'accepted' } : t));
             }
             setToast({ kind: 'success', msg: task.ticket ? 'Задача создана и привязана к заявке' : 'Задача создана и назначена команде' });
@@ -287,7 +275,6 @@ const AppContent: React.FC = () => {
   );
 };
 
-// 401 responses fail silently — session stays active regardless of token state
 setUnauthorizedHandler(() => {});
 
 export const App: React.FC = () => (

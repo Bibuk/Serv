@@ -83,8 +83,8 @@ class TicketsStatsOut(BaseModel):
 
 
 class WeekPoint(BaseModel):
-    week: str        # ISO week label, e.g. "2026-W18"
-    week_label: str  # Human-readable, e.g. "05 мая"
+    week: str
+    week_label: str
     created: int
     closed: int
 

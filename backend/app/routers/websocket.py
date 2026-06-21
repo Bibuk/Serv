@@ -27,7 +27,6 @@ async def websocket_endpoint(
         await websocket.close(code=4001, reason="Not authenticated")
         return
 
-    # Validate token
     payload = decode_token(tok)
     if not payload or payload.get("type") != "access":
         await websocket.close(code=4001, reason="Invalid or expired token")
@@ -42,7 +41,6 @@ async def websocket_endpoint(
     user_id_str = str(user_id)
     await ws_manager.connect(user_id_str, websocket)
 
-    # Send welcome/ping message
     await websocket.send_json({
         "type": "connected",
         "user_id": user_id_str,
@@ -51,11 +49,9 @@ async def websocket_endpoint(
 
     try:
         while True:
-            # Keep connection alive; clients can send pings
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
-            # Other client messages are ignored for now
     except WebSocketDisconnect:
         logger.info(f"WebSocket client disconnected: user {user_id_str}")
     except Exception as e:

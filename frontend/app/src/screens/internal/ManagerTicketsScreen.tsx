@@ -16,12 +16,7 @@ interface Props {
   tickets: Ticket[];
 }
 
-// Build a task prefill from a client ticket: carry over title/description/
-// priority, link the ticket, and suggest the service from the application→
-// service mapping. The responsible group is derived in the modal from the
-// chosen service, so it isn't part of the prefill.
 function buildPrefillFromTicket(ticket: Ticket, apps: App[], services: Service[]): TaskPrefill {
-  // ticket.app may be an id (mock) or a name (real API) — match on both.
   const app = apps.find(a => a.id === ticket.app || a.name === ticket.app);
   const serviceId = app?.services?.[0] ?? '';
   const svc = serviceId ? services.find(s => s.id === serviceId) : undefined;
@@ -47,7 +42,6 @@ const exportTicketsCSV = (tickets: Ticket[]) => {
   a.click();
 };
 
-// Contextual workflow actions per current status (frontend status values).
 const ACTIONS: Record<string, Array<{ to: TicketStatus | 'reject'; label: string; primary?: boolean; danger?: boolean }>> = {
   new:      [{ to: 'inprog', label: 'Взять в обработку', primary: true }, { to: 'reject', label: 'Отклонить', danger: true }],
   inprog:   [{ to: 'reject', label: 'Отклонить', danger: true }],
@@ -82,7 +76,6 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
     setTickets(prev => prev.map(t => (t.id === updated.id ? { ...t, ...updated } : t)));
   };
 
-  // Ticket id awaiting a rejection reason (drives the ReasonModal).
   const [rejectId, setRejectId] = React.useState<string | null>(null);
 
   const actionM = useMutation({
@@ -103,7 +96,6 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
     onError: (e: Error) => setToast({ kind: 'error', msg: e.message }),
   });
 
-  // Bulk "take into processing" for the selected new tickets.
   const bulkM = useMutation({
     mutationFn: async (ids: string[]) => Promise.all(ids.map(id => updateTicketStatus(id, 'inprog'))),
     onSuccess: (updated) => {
@@ -122,7 +114,6 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
     return true;
   });
 
-  // Only "new" tickets can be bulk-accepted; selection is scoped to them.
   const selectableIds = filtered.filter(t => t.status === 'new').map(t => t.id);
   const checkedNew = selectableIds.filter(id => checked.has(id));
   const allNewChecked = selectableIds.length > 0 && checkedNew.length === selectableIds.length;
@@ -174,7 +165,7 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
         </select>
       </div>
 
-      {/* Bulk action bar */}
+      {}
       {checkedNew.length > 0 && (
         <div style={{
           background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8,
@@ -283,7 +274,7 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                 <div><div style={{ fontSize: 11, color: 'var(--c-gray-400)', fontWeight: 500, textTransform: 'uppercase', marginBottom: 3 }}>Клиент</div><span style={{ color: 'var(--c-gray-700)' }}>{selectedTicket.client}</span></div>
               </div>
 
-              {/* Convert to task — the primary dispatcher action */}
+              {}
               {!selectedTicket.taskId && !['closed', 'rejected'].includes(selectedTicket.status) && (
                 <button
                   className="btn btn--primary"
@@ -294,7 +285,7 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                 </button>
               )}
 
-              {/* Linked task indicator */}
+              {}
               {selectedTicket.taskId && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
@@ -305,7 +296,7 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                 </div>
               )}
 
-              {/* Workflow actions */}
+              {}
               {(ACTIONS[selectedTicket.status] ?? []).length > 0 && (
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--c-gray-500)', marginBottom: 8 }}>Действия</div>
@@ -327,7 +318,7 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                 </div>
               )}
 
-              {/* Comments */}
+              {}
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-gray-500)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' }}>Комментарии</div>
                 {commentsQ.isLoading ? (

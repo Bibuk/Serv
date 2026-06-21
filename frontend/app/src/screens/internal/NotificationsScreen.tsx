@@ -30,8 +30,6 @@ export const NotificationsScreen: React.FC = () => {
   const setScreen        = useAppStore(s => s.setScreen);
   const setToast         = useAppStore(s => s.setToast);
 
-  // Persist read-state on the backend; the store update above is optimistic so
-  // the UI stays snappy and the next poll/bootstrap reconciles on failure.
   const markReadM = useMutation({
     mutationFn: (id: string) => apiMarkRead(id),
     onError: () => setToast({ kind: 'error', msg: 'Не удалось отметить уведомление прочитанным' }),
@@ -76,7 +74,7 @@ export const NotificationsScreen: React.FC = () => {
 
   return (
     <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header */}
+      {}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h1 className="page-title" style={{ margin: 0 }}>Уведомления</h1>
@@ -107,7 +105,7 @@ export const NotificationsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Tabs */}
+      {}
       <div className="tabs" style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border-subtle)' }}>
         {TAB_LABELS.map(t => (
           <button
@@ -131,7 +129,7 @@ export const NotificationsScreen: React.FC = () => {
         ))}
       </div>
 
-      {/* Notification list */}
+      {}
       <div className="card" style={{ overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--c-gray-400)', fontSize: 14 }}>
@@ -153,7 +151,7 @@ export const NotificationsScreen: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                {/* Icon circle */}
+                {}
                 <div
                   style={{
                     width: 36,
@@ -170,7 +168,7 @@ export const NotificationsScreen: React.FC = () => {
                   {KIND_ICON[n.kind] ?? KIND_ICON_DEFAULT}
                 </div>
 
-                {/* Content */}
+                {}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: !n.read ? 600 : 400, color: 'var(--c-gray-900)', lineHeight: 1.4 }}>
                     {n.title}
@@ -188,7 +186,7 @@ export const NotificationsScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Unread dot */}
+                {}
                 {!n.read && (
                   <div
                     style={{

@@ -10,8 +10,6 @@ interface Props {
   onClose: () => void;
 }
 
-// Reusable modal that collects a required free-text reason (e.g. for rejecting
-// a ticket or returning a task) — a proper replacement for window.prompt.
 export const ReasonModal: React.FC<Props> = ({
   title, label = 'Причина', placeholder, confirmLabel = 'Подтвердить', busy, onConfirm, onClose,
 }) => {

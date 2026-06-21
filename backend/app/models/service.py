@@ -18,7 +18,6 @@ class Service(Base, UUIDMixin, TimestampMixin):
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     color: Mapped[str] = mapped_column(String(7), nullable=False, default="#000000")
 
-    # Service-catalogue metadata (moved off the frontend's localStorage).
     category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     responsible_team_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
@@ -30,7 +29,6 @@ class Service(Base, UUIDMixin, TimestampMixin):
     sla_resolution_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=24)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
 
-    # Relationships
     tasks: Mapped[List["Task"]] = relationship(
         "Task",
         back_populates="service",

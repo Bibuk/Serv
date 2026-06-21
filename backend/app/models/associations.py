@@ -3,7 +3,6 @@ from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 
-# Which services an application implements (app → service links).
 application_services = Table(
     "application_services",
     Base.metadata,

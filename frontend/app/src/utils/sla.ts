@@ -1,27 +1,18 @@
 import type { Task, Service } from '../types';
 
-// SLA tracking for the manager. A task inherits the resolution SLA (hours) of
-// its service; the due time is computed from the task's creation date plus that
-// allowance. Service metadata now comes from the backend (not localStorage),
-// so callers pass a lookup built from the fetched services.
 export type SLAState = 'ok' | 'risk' | 'breached' | 'done' | 'none';
 
 export interface SLAInfo {
   state: SLAState;
   dueAt: Date | null;
-  hoursLeft: number | null;     // negative when breached
+  hoursLeft: number | null;
   resolutionHours: number | null;
 }
 
 const CLOSED = ['done', 'archive', 'reject'];
-// A task is "at risk" once less than this share of its SLA window remains.
 const RISK_FRACTION = 0.25;
-// Fallback resolution SLA (hours) when a service has no value — mirrors the
-// default on the Services screen so SLA is meaningful out of the box.
 const DEFAULT_RESOLUTION_HOURS = 24;
 
-// Tasks reference their service by name or id depending on data source, so the
-// lookup is keyed by both.
 export function makeServiceLookup(services: Service[]): Map<string, Service> {
   const m = new Map<string, Service>();
   for (const s of services) {
@@ -53,7 +44,6 @@ export function taskSLA(
   return { state, dueAt, hoursLeft, resolutionHours };
 }
 
-// Human-readable remaining/overdue time, e.g. "4 ч", "2 д", "просрочено 3 ч".
 export function formatSLALeft(info: SLAInfo): string {
   if (info.hoursLeft == null) return '—';
   const abs = Math.abs(info.hoursLeft);

@@ -1,18 +1,8 @@
 import type { NotificationItem } from '../store/appStore';
 
-// Real-time notification stream over WebSocket.
-//
-// The backend exposes `/ws/{user_id}` and pushes JSON frames of
-// `type: "notification"` (see app/services/notification.py). Auth rides on the
-// same httpOnly access_token cookie used by the REST client, so no token needs
-// to be passed explicitly on a same-origin handshake.
-//
-// This client owns reconnection (capped exponential backoff) and a keepalive
-// ping, and converts backend frames into the store's NotificationItem shape.
 
 const USE_MOCK = import.meta.env.VITE_API_MOCK !== 'false';
 
-// Raw frame as emitted by create_notification() on the backend.
 interface NotificationFrame {
   type: 'notification';
   id: string;
@@ -49,7 +39,7 @@ function socketUrl(userId: string): string {
   return `${proto}//${window.location.host}/ws/${encodeURIComponent(userId)}`;
 }
 
-const PING_INTERVAL_MS = 25_000;     // keep proxies from idling the connection
+const PING_INTERVAL_MS = 25_000;
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 
@@ -101,7 +91,7 @@ export class NotificationSocket {
       try {
         frame = JSON.parse(ev.data as string);
       } catch {
-        return; // ignore non-JSON frames
+        return;
       }
       if (isNotificationFrame(frame)) {
         this.handlers.onNotification(toItem(frame));
@@ -115,8 +105,7 @@ export class NotificationSocket {
     };
 
     ws.onerror = () => {
-      // onclose fires right after — reconnect is handled there.
-      try { ws.close(); } catch { /* noop */ }
+      try { ws.close(); } catch { }
     };
   }
 
@@ -146,8 +135,8 @@ export class NotificationSocket {
     this.stopPing();
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     if (this.ws) {
-      this.ws.onclose = null; // suppress reconnect on intentional close
-      try { this.ws.close(); } catch { /* noop */ }
+      this.ws.onclose = null;
+      try { this.ws.close(); } catch { }
       this.ws = null;
     }
   }

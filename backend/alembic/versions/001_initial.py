@@ -15,8 +15,6 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-# ENUM types are created once, explicitly, below. create_type=False keeps the
-# table DDL from emitting a second CREATE TYPE for the same name.
 userrole_enum = postgresql.ENUM(
     "client", "manager", "teamlead", "worker", "admin",
     name="userrole", create_type=False,
@@ -70,7 +68,6 @@ def upgrade() -> None:
     for e in _ALL_ENUMS:
         e.create(bind, checkfirst=True)
 
-    # teams (created before users because users.team_id FK → teams)
     op.create_table(
         "teams",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -79,7 +76,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
 
-    # users
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -95,7 +91,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_users_email", "users", ["email"], unique=True)
 
-    # Add FK from teams.teamlead_id → users.id
     op.create_foreign_key(
         "fk_teams_teamlead_id",
         "teams", "users",
@@ -103,7 +98,6 @@ def upgrade() -> None:
         ondelete="SET NULL",
     )
 
-    # applications
     op.create_table(
         "applications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -114,7 +108,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
 
-    # services
     op.create_table(
         "services",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -124,7 +117,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
 
-    # tasks (created before tickets because tickets.task_id FK → tasks)
     op.create_table(
         "tasks",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -152,7 +144,6 @@ def upgrade() -> None:
     op.create_index("ix_tasks_team_id", "tasks", ["team_id"])
     op.create_index("ix_tasks_service_id", "tasks", ["service_id"])
 
-    # tickets
     op.create_table(
         "tickets",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -170,7 +161,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["task_id"], ["tasks.id"], ondelete="SET NULL"),
     )
 
-    # Add ticket_id FK to tasks (circular between tasks and tickets — both created, now add FK)
     op.create_foreign_key(
         "fk_tasks_ticket_id",
         "tasks", "tickets",
@@ -178,7 +168,6 @@ def upgrade() -> None:
         ondelete="SET NULL",
     )
 
-    # subtasks
     op.create_table(
         "subtasks",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -194,7 +183,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["assignee_id"], ["users.id"], ondelete="SET NULL"),
     )
 
-    # comments
     op.create_table(
         "comments",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -207,7 +195,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["author_id"], ["users.id"], ondelete="RESTRICT"),
     )
 
-    # notifications
     op.create_table(
         "notifications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -222,7 +209,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_notifications_user_id", "notifications", ["user_id"])
 
-    # audit_log
     op.create_table(
         "audit_log",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -236,7 +222,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_audit_log_user_id", "audit_log", ["user_id"])
 
-    # file_attachments
     op.create_table(
         "file_attachments",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -260,7 +245,6 @@ def downgrade() -> None:
     op.drop_table("comments")
     op.drop_table("subtasks")
 
-    # Drop FK from tasks to tickets before dropping tickets
     op.drop_constraint("fk_tasks_ticket_id", "tasks", type_="foreignkey")
     op.drop_table("tickets")
     op.drop_table("tasks")
@@ -268,11 +252,9 @@ def downgrade() -> None:
     op.drop_table("applications")
     op.drop_table("users")
 
-    # Drop FK from teams to users before dropping teams
     op.drop_constraint("fk_teams_teamlead_id", "teams", type_="foreignkey")
     op.drop_table("teams")
 
-    # Drop ENUMs
     bind = op.get_bind()
     for e in reversed(_ALL_ENUMS):
         e.drop(bind, checkfirst=True)

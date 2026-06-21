@@ -50,7 +50,6 @@ class Subtask(Base, UUIDMixin, TimestampMixin):
         nullable=False,
     )
 
-    # Relationships
     task: Mapped["Task"] = relationship(
         "Task",
         back_populates="subtasks",

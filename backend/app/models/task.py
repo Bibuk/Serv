@@ -70,8 +70,6 @@ class Task(Base, UUIDMixin, TimestampMixin):
         nullable=False,
     )
     deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    # Reason captured when a manager returns a task from review. Cleared once the
-    # task leaves the rejected state so it never shows stale context.
     reject_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -88,7 +86,6 @@ class Task(Base, UUIDMixin, TimestampMixin):
         nullable=True,
     )
 
-    # Relationships
     service: Mapped["Service"] = relationship(
         "Service",
         back_populates="tasks",

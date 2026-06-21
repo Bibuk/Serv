@@ -18,8 +18,6 @@ export async function getAuditLog(params?: AuditQuery): Promise<AuditEntry[]> {
     );
   }
   const q = new URLSearchParams();
-  // Backend filters audit log by entity_type (task/ticket/user/…), not by the
-  // frontend's create/update/delete "kind"; only forward userId/paging.
   if (params?.userId)   q.set('user_id', params.userId);
   if (params?.page)     q.set('page', String(params.page));
   if (params?.pageSize) q.set('size', String(params.pageSize));

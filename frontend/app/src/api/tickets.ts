@@ -84,7 +84,6 @@ export async function getTicketComments(ticketId: string): Promise<Comment[]> {
     await delay(40);
     const tk = TICKETS.find(t => t.id === ticketId);
     if (!tk) return [];
-    // Bridge: ticket thread + client-visible comments from the linked task.
     const out = [...(tk.comments ?? [])];
     if (tk.taskId) {
       const task = TASKS.find(t => t.id === tk.taskId);
@@ -96,7 +95,6 @@ export async function getTicketComments(ticketId: string): Promise<Comment[]> {
   return unwrap(data).map(mapComment as (c: unknown) => Comment);
 }
 
-// Manager moves a ticket through its lifecycle (new → processing → accepted → closed).
 export async function updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket> {
   if (USE_MOCK) {
     await delay(120);
@@ -124,7 +122,6 @@ export async function updateTicketPriority(id: string, priority: Priority): Prom
   return mapTicket(await apiClient.patch(`/tickets/${id}`, { priority }));
 }
 
-// Link an existing task to a ticket → moves the ticket to 'accepted'.
 export async function linkTaskToTicket(ticketId: string, taskId: string): Promise<Ticket> {
   if (USE_MOCK) {
     await delay(120);

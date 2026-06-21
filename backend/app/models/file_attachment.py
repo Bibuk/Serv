@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 class FileAttachment(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "file_attachments"
 
-    # An attachment belongs to either a subtask or a task (exactly one is set).
     subtask_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("subtasks.id", ondelete="CASCADE"),
@@ -38,7 +37,6 @@ class FileAttachment(Base, UUIDMixin, TimestampMixin):
         nullable=False,
     )
 
-    # Relationships
     subtask: Mapped[Optional["Subtask"]] = relationship(
         "Subtask",
         back_populates="files",

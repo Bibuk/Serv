@@ -59,32 +59,27 @@ def check(label, got, expected):
 
 
 print("== Portal isolation at login ==")
-# Client portal admits clients only
 check("client account  -> client portal",  login("client",  "client")[0], 200)
 check("admin account   -> client portal",  login("admin",   "client")[0], 403)
 check("manager account -> client portal",  login("manager", "client")[0], 403)
 check("worker account  -> client portal",  login("worker",  "client")[0], 403)
-# Internal portal admits staff only
 check("admin account   -> internal portal", login("admin",   "internal")[0], 200)
 check("manager account -> internal portal", login("manager", "internal")[0], 200)
 check("worker account  -> internal portal", login("worker",  "internal")[0], 200)
 check("client account  -> internal portal", login("client",  "internal")[0], 403)
 
 print("\n== Role-based data access ==")
-# Client session: cannot read internal tasks, can read own tickets
 _, client_cookie = login("client", "client")
 client_cookie = client_cookie.split(";")[0] if client_cookie else None
 check("client GET /api/tasks/   (staff-only)", _request("GET", "/api/tasks/",   cookie=client_cookie)[0], 403)
 check("client GET /api/tickets/ (own)",        _request("GET", "/api/tickets/", cookie=client_cookie)[0], 200)
 check("client GET /api/users/   (admin-only)", _request("GET", "/api/users/",   cookie=client_cookie)[0], 403)
 
-# Worker session: can read tasks, cannot manage users
 _, worker_cookie = login("worker", "internal")
 worker_cookie = worker_cookie.split(";")[0] if worker_cookie else None
 check("worker GET /api/tasks/   (staff)",      _request("GET", "/api/tasks/",   cookie=worker_cookie)[0], 200)
 check("worker GET /api/users/   (admin-only)", _request("GET", "/api/users/",   cookie=worker_cookie)[0], 403)
 
-# Admin session: full management access
 _, admin_cookie = login("admin", "internal")
 admin_cookie = admin_cookie.split(";")[0] if admin_cookie else None
 check("admin  GET /api/users/   (admin)",      _request("GET", "/api/users/",   cookie=admin_cookie)[0], 200)

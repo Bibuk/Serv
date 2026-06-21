@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Task, SubtaskStatus } from '../../types';
-import { StatusPill, Deadline } from '../../components';
+import { StatusPill, Deadline, Attachments } from '../../components';
 import { SidebarIcon } from '../../shells';
 import { useAppStore } from '../../store/appStore';
 import { useMyTeam } from '../../hooks/useTeam';
@@ -40,7 +40,6 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['task', taskId] });
-    // Reflect updated status in the global task list the dashboard reads.
     if (task) setTasks(prev => prev.map(t => (t.id === task.id ? { ...t } : t)));
   };
 
@@ -103,7 +102,6 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
     addM.mutate();
   };
 
-  // No task id resolved → let the teamlead pick one of the team's tasks.
   if (taskQ.isError || (!taskQ.isLoading && !task)) {
     const teamTasks = tasks.filter(t => t.team === teamName);
     return (
@@ -149,7 +147,7 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
 
   return (
     <div>
-      {/* Back link */}
+      {}
       <div style={{ marginBottom: 16 }}>
         <button className="btn btn--ghost btn--sm" onClick={() => openDrawer(task.id)} style={{ color: 'var(--c-blue-600)', paddingLeft: 0 }}>
           <SidebarIcon name="arrowLeft" size={14} />
@@ -157,7 +155,7 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
         </button>
       </div>
 
-      {/* Page header + workflow actions */}
+      {}
       <div className="page-header">
         <div>
           <h1 className="page-title">Декомпозиция</h1>
@@ -188,7 +186,7 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
         </div>
       </div>
 
-      {/* Progress card */}
+      {}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card__body">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -201,9 +199,9 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
         </div>
       </div>
 
-      {/* Two-column layout */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
-        {/* Subtask list */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Подзадачи</span>
@@ -268,7 +266,8 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
               }
 
               return (
-                <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border-subtle)', borderRadius: 8, background: isDone ? 'var(--c-gray-50)' : '#fff' }}>
+                <div key={sub.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid var(--border-subtle)', borderRadius: 8, background: isDone ? 'var(--c-gray-50)' : '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input
                     type="checkbox"
                     checked={isDone}
@@ -302,14 +301,17 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
                   >
                     <SidebarIcon name="trash" size={14} />
                   </button>
+                  </div>
+                  <Attachments kind="subtask" id={sub.id} canDelete collapsible compact />
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Add subtask form */}
-        <div className="card" style={{ position: 'sticky', top: 20 }}>
+        {}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, position: 'sticky', top: 20 }}>
+        <div className="card">
           <div className="card__head">
             <span className="card__title">Добавить подзадачу</span>
           </div>
@@ -348,6 +350,15 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
               {addM.isPending ? 'Добавление…' : 'Добавить подзадачу'}
             </button>
           </div>
+        </div>
+        <div className="card">
+          <div className="card__head">
+            <span className="card__title">Файлы задачи</span>
+          </div>
+          <div className="card__body">
+            <Attachments kind="task" id={taskId} canDelete />
+          </div>
+        </div>
         </div>
       </div>
     </div>

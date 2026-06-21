@@ -10,7 +10,6 @@ from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
-# WebSocket manager: user_id -> list of WebSocket connections
 class WebSocketManager:
     def __init__(self):
         self._connections: dict[str, list] = {}
@@ -41,7 +40,6 @@ class WebSocketManager:
             except Exception as e:
                 logger.warning(f"Failed to send WebSocket message to user {user_id}: {e}")
                 disconnected.append(ws)
-        # Clean up dead connections
         for ws in disconnected:
             try:
                 self._connections[user_id].remove(ws)
@@ -75,9 +73,8 @@ async def create_notification(
         is_read=False,
     )
     db.add(notification)
-    await db.flush()  # Get the ID without full commit
+    await db.flush()
 
-    # Push via WebSocket
     await ws_manager.send_to_user(
         str(user_id),
         {
@@ -92,7 +89,6 @@ async def create_notification(
         },
     )
 
-    # Queue email if user has notify_email enabled
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user and user.notify_email:

@@ -4,7 +4,6 @@ import { useAppStore } from '../../store/appStore';
 import { createTicket } from '../../api';
 import type { Priority } from '../../types';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const CATEGORY_LABELS: Record<string, string> = {
   communications:  'Коммуникации',
@@ -32,23 +31,18 @@ const AFFECTED_OPTIONS = [
 ];
 
 const BRANCHES = [
-  // Москва и МО
   'Москва — Головной офис (ул. Авиаконструктора Миля, 10)',
   'Москва — Производственный комплекс Зеленоград',
   'МО, Подольск — Склад №1 (ул. Машиностроителей, 15)',
   'МО, Химки — Склад №2 (Ленинградское ш., 71)',
   'МО, Домодедово — Склад №3 (Промышленный пр., 4)',
-  // Северо-Запад
   'Санкт-Петербург — Офис (Лиговский пр., 87)',
   'Санкт-Петербург — Склад (Колпино, ул. Загородная, 22)',
-  // Урал
   'Екатеринбург — Региональный офис (ул. Луначарского, 81)',
   'Екатеринбург — Склад (ул. Монтажников, 28)',
-  // Сибирь
   'Новосибирск — Региональный офис (ул. Советская, 64)',
   'Новосибирск — Склад (ул. Большая, 243)',
   'Красноярск — Офис (ул. Маерчака, 18)',
-  // Поволжье
   'Казань — Региональный офис (ул. Профсоюзная, 17)',
   'Нижний Новгород — Офис (ул. Студенческая, 4)',
   'Самара — Офис (ул. Ново-Садовая, 106)',
@@ -56,7 +50,6 @@ const BRANCHES = [
   'Уфа — Офис (ул. Менделеева, 132)',
   'Волгоград — Офис (пр. Ленина, 55)',
   'Пермь — Офис (ул. Революции, 13)',
-  // Юг
   'Краснодар — Региональный офис и склад (ул. Тополиная аллея, 9)',
   'Ростов-на-Дону — Офис (пр. Шолохова, 47)',
   'Воронеж — Офис (ул. Театральная, 23)',
@@ -77,7 +70,6 @@ const fmtSla = (hours: number) => {
   return `${hours} ч`;
 };
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const fieldWrap: React.CSSProperties  = { display: 'flex', flexDirection: 'column', gap: 6 };
 const labelCss: React.CSSProperties   = { fontSize: 13, fontWeight: 600, color: 'var(--c-gray-700)' };
@@ -89,7 +81,6 @@ const inputCss: React.CSSProperties   = {
 };
 const errCss: React.CSSProperties = { color: '#f87171', fontSize: 12, marginTop: 4 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
   goto:     (screen: string) => void;
@@ -104,7 +95,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
   const services    = useAppStore(s => s.services);
   const apps        = useAppStore(s => s.apps);
 
-  // ─── Form state ────────────────────────────────────────────────────────────
   const [categoryId,    setCategoryId]    = useState('');
   const [appId,         setAppId]         = useState('');
   const [branch,        setBranch]        = useState('');
@@ -119,7 +109,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
   const [draftNotice,   setDraftNotice]   = useState(false);
   const [draftSaved,    setDraftSaved]    = useState(false);
 
-  // Restore draft on mount
   useEffect(() => {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return;
@@ -134,11 +123,9 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
       if (d.affectedUsers) setAffectedUsers(d.affectedUsers);
       setDraftNotice(true);
     } catch {
-      // ignore malformed draft
     }
   }, []);
 
-  // ─── Derived data ──────────────────────────────────────────────────────────
 
   const activeServices = useMemo(() => services.filter(s => s.status !== 'archived'), [services]);
   const activeApps     = useMemo(() => apps.filter(a => a.status === 'active'),       [apps]);
@@ -164,7 +151,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     [activeApps, serviceIdSet],
   );
 
-  // Group apps under their services for <optgroup>
   const appsByService = useMemo(() =>
     servicesInCategory
       .map(svc => ({
@@ -182,7 +168,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     [selectedApp, servicesInCategory],
   );
 
-  // Similar closed/rejected tickets for the selected app
   const similarTickets = useMemo(() =>
     appId
       ? tickets
@@ -192,7 +177,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     [tickets, appId],
   );
 
-  // Current user's recent tickets
   const myRecentTickets = useMemo(() =>
     currentUser
       ? [...tickets]
@@ -203,7 +187,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     [tickets, currentUser],
   );
 
-  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setCategoryId(e.target.value);
@@ -275,7 +258,6 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     }
   };
 
-  // ─── Shared style helpers ──────────────────────────────────────────────────
 
   const selectCss = (value: string, disabled?: boolean): React.CSSProperties => ({
     ...inputCss,
@@ -294,13 +276,12 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     };
   };
 
-  // ─── Sub-views ────────────────────────────────────────────────────────────
 
   const formCard = (
     <div className="card">
       <div className="card__body" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* Draft restore notice */}
+        {}
         {draftNotice && (
           <div style={{
             padding: '10px 14px', background: '#EFF6FF', border: '1px solid #BFDBFE',
@@ -315,7 +296,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           </div>
         )}
 
-        {/* 1. Category */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Категория <span style={{ color: '#DC2626' }}>*</span></label>
           <select value={categoryId} onChange={handleCategoryChange} style={selectCss(categoryId)}>
@@ -327,7 +308,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {fieldErrors.category && <div style={errCss}>{fieldErrors.category}</div>}
         </div>
 
-        {/* 2. Service / App */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Сервис / приложение <span style={{ color: '#DC2626' }}>*</span></label>
           <select
@@ -350,7 +331,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {fieldErrors.app && <div style={errCss}>{fieldErrors.app}</div>}
         </div>
 
-        {/* 3. Routing info block — appears after service/app selection */}
+        {}
         {serviceForApp && (
           <div style={{
             padding: '12px 16px', background: '#F0FDF4',
@@ -374,7 +355,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           </div>
         )}
 
-        {/* 4. Branch / Warehouse */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Склад / филиал <span style={{ color: '#DC2626' }}>*</span></label>
           <input
@@ -391,7 +372,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {fieldErrors.branch && <div style={errCss}>{fieldErrors.branch}</div>}
         </div>
 
-        {/* 5. Subject */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Тема обращения <span style={{ color: '#DC2626' }}>*</span></label>
           <input
@@ -404,7 +385,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {fieldErrors.title && <div style={errCss}>{fieldErrors.title}</div>}
         </div>
 
-        {/* 6. Description */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Подробное описание <span style={{ color: '#DC2626' }}>*</span></label>
           <textarea
@@ -417,7 +398,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {fieldErrors.desc && <div style={errCss}>{fieldErrors.desc}</div>}
         </div>
 
-        {/* 7. Priority */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Приоритет <span style={{ color: '#DC2626' }}>*</span></label>
           <select
@@ -433,7 +414,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {fieldErrors.priority && <div style={errCss}>{fieldErrors.priority}</div>}
         </div>
 
-        {/* 8. Affected users */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Затронуто пользователей</label>
           <select
@@ -448,7 +429,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           </select>
         </div>
 
-        {/* 9. Attachments */}
+        {}
         <div style={fieldWrap}>
           <label style={labelCss}>Вложения</label>
           <label
@@ -495,7 +476,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
   const auxPanel = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Block 1: Similar tickets */}
+      {}
       <div className="card">
         <div className="card__body" style={{ padding: 16 }}>
           <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-gray-800)', marginBottom: 10 }}>
@@ -530,7 +511,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
         </div>
       </div>
 
-      {/* Block 2: Contextual hint */}
+      {}
       {appId && (
         <div className="card">
           <div className="card__body" style={{ padding: 16 }}>
@@ -550,7 +531,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
         </div>
       )}
 
-      {/* Block 3: My recent tickets */}
+      {}
       <div className="card">
         <div className="card__body" style={{ padding: 16 }}>
           <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-gray-800)', marginBottom: 10 }}>
@@ -578,12 +559,11 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     </div>
   );
 
-  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div style={{ padding: mobile ? 16 : '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Back */}
+      {}
       <button
         onClick={() => goto('tickets')}
         style={{
@@ -596,7 +576,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
         ← Назад
       </button>
 
-      {/* Title */}
+      {}
       <div>
         <h1 style={{ margin: 0, fontSize: mobile ? 20 : 24, fontWeight: 700, color: 'var(--c-gray-900)' }}>
           Новая заявка
@@ -606,10 +586,10 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
         </p>
       </div>
 
-      {/* Two-column layout (stacks on mobile) */}
+      {}
       <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', gap: 20, alignItems: 'flex-start' }}>
 
-        {/* Left: form + error + buttons */}
+        {}
         <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {formCard}
 
@@ -622,7 +602,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
             </div>
           )}
 
-          {/* 10. Action buttons */}
+          {}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <button className="btn btn--outline" onClick={handleSaveDraft}>
               {draftSaved ? '✓ Черновик сохранён' : 'Сохранить как черновик'}
@@ -638,7 +618,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           </div>
         </div>
 
-        {/* Right: auxiliary panel */}
+        {}
         <div style={{ width: mobile ? '100%' : 320, flexShrink: 0 }}>
           {auxPanel}
         </div>

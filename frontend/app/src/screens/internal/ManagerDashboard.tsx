@@ -81,7 +81,7 @@ export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate
 
   return (
     <div>
-      {/* Page header */}
+      {}
       <div className="page-header">
         <div>
           <h1 className="page-title">Дашборд менеджера</h1>
@@ -114,7 +114,7 @@ export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate
         </div>
       </div>
 
-      {/* Stats row */}
+      {}
       <div className="stats">
         <Stat
           label="Активных задач"
@@ -185,11 +185,11 @@ export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate
         />
       </div>
 
-      {/* Two column layout */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16 }}>
-        {/* Left column */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Incoming tickets */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Входящие заявки</span>
@@ -247,7 +247,7 @@ export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate
             </div>
           </div>
 
-          {/* Active tasks */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Активные задачи</span>
@@ -300,9 +300,9 @@ export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate
           </div>
         </div>
 
-        {/* Right column */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Team load */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Нагрузка команд</span>
@@ -329,7 +329,7 @@ export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate
             </div>
           </div>
 
-          {/* Drafts */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Черновики</span>

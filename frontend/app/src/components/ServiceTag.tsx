@@ -30,7 +30,6 @@ const Tag: React.FC<{ color: string; label: string }> = ({ color, label }) => (
 );
 
 export const ServiceTag: React.FC<{ id: string }> = ({ id }) => {
-  // Share the same RQ cache as screens — no extra network requests.
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
     queryFn: getServices,

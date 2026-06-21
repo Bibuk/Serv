@@ -21,7 +21,6 @@ from app.models.audit_log import AuditEntityType
 from app.dependencies import get_current_user
 from app.config import settings
 
-# Deterministic color palette for user avatars
 _AVATAR_COLORS = [
     "#2563EB", "#7C3AED", "#059669", "#D97706",
     "#DC2626", "#EC4899", "#0EA5E9", "#10B981",
@@ -113,10 +112,6 @@ async def login(
             detail="Account is inactive",
         )
 
-    # Portal isolation: the client portal only admits client accounts; the
-    # internal portal only admits staff. This is the real boundary — clients
-    # can never obtain a staff session (or vice versa) even if they reach the
-    # other portal's login form.
     is_client = user.role == UserRole.client
     if body.portal == "client" and not is_client:
         raise HTTPException(
@@ -155,7 +150,7 @@ async def logout(
                 ttl = max(int(exp - datetime.now(timezone.utc).timestamp()), 1)
                 await blacklist_jti(payload["jti"], ttl)
             except Exception:
-                pass  # Redis unavailable — token expires naturally
+                pass
         if payload and payload.get("sub"):
             try:
                 uid = uuid.UUID(payload["sub"])
@@ -206,7 +201,6 @@ async def refresh(
             detail="User not found or inactive",
         )
 
-    # Blacklist the old refresh token before issuing new ones
     exp = payload.get("exp", 0)
     ttl = max(int(exp - datetime.now(timezone.utc).timestamp()), 1)
     await blacklist_jti(jti, ttl)

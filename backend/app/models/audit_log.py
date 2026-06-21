@@ -39,7 +39,6 @@ class AuditLog(Base, UUIDMixin, TimestampMixin):
     entity_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
     meta: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
-    # Relationships
     user: Mapped["User"] = relationship(
         "User",
         back_populates="audit_logs",

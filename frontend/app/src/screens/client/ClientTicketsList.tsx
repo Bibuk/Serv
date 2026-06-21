@@ -23,7 +23,6 @@ const FILTER_TABS: Array<{ key: FilterTab; label: string }> = [
   { key: 'rejected', label: 'Отклонённые' },
 ];
 
-// Deterministic colour from any string (works for both real app names and mock ids).
 const PALETTE = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0EA5E9', '#EC4899', '#10B981'];
 function colorForApp(s: string): string {
   if (!s) return '#9CA3AF';
@@ -37,8 +36,6 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
   const currentUser = useAppStore(s => s.currentUser);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
-  // The backend already scopes ticket lists to the signed-in client; the extra
-  // name/id match keeps mock mode (unscoped) showing only this client's tickets.
   const myTickets = tickets.filter(t => t.client === currentUser?.id || t.client === currentUser?.name);
 
   const filtered = activeTab === 'all'
@@ -53,7 +50,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
   if (mobile) {
     return (
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Mobile header */}
+        {}
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Мои заявки</h2>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--c-gray-500)' }}>{activeCount} активных</p>
@@ -67,7 +64,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
           + Создать новую заявку
         </button>
 
-        {/* Pill filter tabs scrollable */}
+        {}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
           {FILTER_TABS.map(tab => (
             <button
@@ -94,7 +91,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
           ))}
         </div>
 
-        {/* Mobile ticket cards */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--c-gray-400)' }}>
@@ -161,7 +158,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {/* Hero banner */}
+      {}
       <div
         className="client-hero"
         style={{
@@ -199,7 +196,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
       </div>
 
       <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Filter tabs */}
+        {}
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border-subtle)' }}>
           {FILTER_TABS.map(tab => (
             <button
@@ -242,7 +239,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
           ))}
         </div>
 
-        {/* Ticket list */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.length === 0 && (
             <div style={{
@@ -298,7 +295,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
                 }}
                 onClick={() => goto('ticket', { ticketId: ticket.id })}
               >
-                {/* App icon */}
+                {}
                 <div
                   style={{
                     width: 42,
@@ -316,7 +313,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
                   {appIcon}
                 </div>
 
-                {/* Main content */}
+                {}
                 <div className="tcard__main" style={{ flex: 1, minWidth: 0 }}>
                   <div className="tcard__title" style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-gray-900)', marginBottom: 5 }}>
                     {ticket.title}
@@ -344,7 +341,7 @@ export const ClientTicketsList: React.FC<Props> = ({ goto, openCreate, tickets, 
 
                 <StatusPill status={ticket.status} />
 
-                {/* Chevron */}
+                {}
                 <span style={{ color: 'var(--c-gray-400)', fontSize: 18, flexShrink: 0 }}>›</span>
               </div>
             );

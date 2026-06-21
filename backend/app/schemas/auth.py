@@ -6,9 +6,6 @@ from pydantic import BaseModel, EmailStr, field_validator
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-    # Which portal the login was attempted from. The server rejects a
-    # mismatch (e.g. a client account logging in on the internal portal),
-    # so access control does not rely on the frontend alone.
     portal: Literal["internal", "client"]
 
 
@@ -30,7 +27,7 @@ class RegisterRequest(BaseModel):
 
 
 class RefreshRequest(BaseModel):
-    pass  # Token comes from httpOnly cookie
+    pass
 
 
 class TokenResponse(BaseModel):
@@ -49,12 +46,11 @@ class MeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# Frontend-compatible user shape returned by /auth/login and /auth/me
 class UserAuthResponse(BaseModel):
     id: str
     email: str
-    name: str        # full_name alias
+    name: str
     role: str
-    team: str        # team name (empty string if no team)
-    avatar: str      # initials derived from name
-    color: str       # deterministic color from user id
+    team: str
+    avatar: str
+    color: str

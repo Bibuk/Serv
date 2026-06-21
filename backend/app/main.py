@@ -10,7 +10,6 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.limiter import limiter
 
-# Configure logging — never DEBUG in production
 logging.basicConfig(
     level=logging.DEBUG if not settings.is_production else logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -29,7 +28,6 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down 2LTP backend...")
 
 
-# Disable Swagger/ReDoc/OpenAPI in production (§ security)
 app = FastAPI(
     title="2LTP Task Portal API",
     version="1.0.0",
@@ -39,12 +37,10 @@ app = FastAPI(
     openapi_url=settings.openapi_url,
 )
 
-# Rate limiter middleware
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# CORS — strict origin list from env
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -53,7 +49,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
 from app.routers import (
     auth,
     users,
@@ -92,7 +87,6 @@ async def health():
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    # Never leak internal details to client
     logger.exception(f"Unhandled error on {request.method} {request.url.path}: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

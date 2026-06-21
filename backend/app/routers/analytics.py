@@ -71,7 +71,6 @@ async def avg_completion_time(
     days = int(period.rstrip("d")) if period.endswith("d") else 30
     start = _period_start(days)
 
-    # Average hours between created_at and updated_at for done tasks
     q = select(
         func.avg(
             func.extract("epoch", Task.updated_at - Task.created_at) / 3600
@@ -85,7 +84,6 @@ async def avg_completion_time(
     )
     row = (await db.execute(q)).first()
 
-    # Per-service breakdown
     per_service_q = (
         select(
             Service.id.label("service_id"),
@@ -126,7 +124,6 @@ async def team_load(
     result = []
 
     for team in teams:
-        # Active tasks assigned to this team
         active_task_statuses = [TaskStatus.assigned, TaskStatus.in_progress, TaskStatus.review]
         task_count_q = select(func.count(Task.id)).where(
             and_(
@@ -136,7 +133,6 @@ async def team_load(
         )
         active_tasks = (await db.execute(task_count_q)).scalar_one()
 
-        # Active subtasks for members of this team
         subtask_count_q = (
             select(func.count(Subtask.id))
             .join(User, Subtask.assignee_id == User.id)
@@ -301,7 +297,6 @@ async def analytics_summary(
     start = now - timedelta(weeks=weeks)
     non_terminal = [TaskStatus.draft, TaskStatus.assigned, TaskStatus.in_progress, TaskStatus.review]
 
-    # Completed tasks in the period
     done_rows = (
         await db.execute(
             select(Task.created_at, Task.updated_at, Task.deadline).where(
@@ -326,7 +321,6 @@ async def analytics_summary(
         )
     ).scalar_one()
 
-    # By status (whole dataset, non-archived)
     status_rows = (
         await db.execute(
             select(Task.status, func.count(Task.id).label("count"))
@@ -336,7 +330,6 @@ async def analytics_summary(
     ).all()
     by_status = [{"status": r.status.value, "count": r.count} for r in status_rows]
 
-    # Weekly created vs closed (inline the 'week' literal so GROUP BY matches)
     week_lit = text("'week'")
     created_week = func.date_trunc(week_lit, Task.created_at)
     closed_week = func.date_trunc(week_lit, Task.updated_at)
@@ -361,7 +354,6 @@ async def analytics_summary(
         for w in sorted(set(created_map) | set(closed_map))
     ]
 
-    # Team load
     teams = (await db.execute(select(Team))).scalars().all()
     team_load = []
     for team in teams:
@@ -404,12 +396,10 @@ async def weekly_stats(
     weeks = max(1, days // 7)
     start = datetime.now(timezone.utc) - timedelta(weeks=weeks)
 
-    # Inline the 'week' literal so GROUP BY/ORDER BY match the SELECT expression
     week_lit = text("'week'")
     created_week = func.date_trunc(week_lit, Task.created_at)
     closed_week = func.date_trunc(week_lit, Task.updated_at)
 
-    # Created per week
     created_q = (
         select(created_week.label("week"), func.count(Task.id).label("cnt"))
         .where(Task.created_at >= start)
@@ -418,7 +408,6 @@ async def weekly_stats(
     )
     created_rows = (await db.execute(created_q)).all()
 
-    # Closed (done) per week — using updated_at as completion date
     closed_q = (
         select(closed_week.label("week"), func.count(Task.id).label("cnt"))
         .where(
@@ -435,7 +424,6 @@ async def weekly_stats(
     created_map: dict[str, int] = {str(r.week.date()): r.cnt for r in created_rows}
     closed_map: dict[str, int] = {str(r.week.date()): r.cnt for r in closed_rows}
 
-    # Build week sequence
     all_weeks: set[str] = set(created_map) | set(closed_map)
     sorted_weeks = sorted(all_weeks)
 

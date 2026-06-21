@@ -4,7 +4,6 @@ import { useLogout } from '../hooks/useAuth';
 import { useAppStore } from '../store/appStore';
 import { CLIENT_NAV } from './constants';
 
-// РСТ brand mark — shared between the desktop header and the mobile top bar.
 const BrandLogo: React.FC<{ width?: number; height?: number }> = ({ width = 36, height = 22 }) => (
   <svg width={width} height={height} viewBox="0 0 68 42" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M67.5521 14.6045C66.8811 10.9294 64.5805 7.68397 60.938 5.20215C53.8446 0.33395 41.9584 -1.24106 30.0243 1.00213C18.1861 3.24532 7.83361 9.06807 2.99287 16.1795C0.452681 19.8545 -0.457951 23.7681 0.213043 27.4909C0.931965 31.1659 3.28044 34.4113 6.97091 36.8932C11.9554 40.2341 19.1446 42 27.0528 42C30.5036 42 34.1461 41.6659 37.7408 40.95C49.579 38.7068 59.9315 32.8841 64.7722 25.7727C67.3124 22.1454 68.271 18.2795 67.5521 14.6045Z" fill="#E20813"/>
@@ -75,7 +74,7 @@ export const ClientShell: React.FC<ClientShellProps> = ({ screen, onNav, mobile,
   if (mobile) {
     return (
       <div className="client-mobile">
-        {/* Sticky top bar: brand + notifications + avatar + logout */}
+        {}
         <header className="client-mobile__bar">
           <button className="client-mobile__brand" onClick={() => onNav('tickets')} title="На главную">
             <BrandLogo width={30} height={18} />
@@ -103,12 +102,12 @@ export const ClientShell: React.FC<ClientShellProps> = ({ screen, onNav, mobile,
           </div>
         </header>
 
-        {/* Scrollable content */}
+        {}
         <div className="client-mobile__content">
           {children}
         </div>
 
-        {/* Bottom tab bar — respects the home-indicator safe area */}
+        {}
         <nav className="client-mobile__tabbar">
           {MOBILE_TABS.map(({ id, label, Icon }) => {
             const active = screen === id;
@@ -134,10 +133,9 @@ export const ClientShell: React.FC<ClientShellProps> = ({ screen, onNav, mobile,
     );
   }
 
-  // Desktop layout
   return (
     <div className="shell-client">
-      {/* Header */}
+      {}
       <header className="client-header">
         <div className="client-header__inner">
           <div className="client-header__brand">
@@ -197,7 +195,7 @@ export const ClientShell: React.FC<ClientShellProps> = ({ screen, onNav, mobile,
         </div>
       </header>
 
-      {/* Page content */}
+      {}
       <main className="client-page">
         {children}
       </main>

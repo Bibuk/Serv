@@ -1,8 +1,5 @@
 export type Role = 'manager' | 'teamlead' | 'worker' | 'admin' | 'client';
 export type TaskStatus = 'draft' | 'assigned' | 'inprog' | 'review' | 'done' | 'reject' | 'archive';
-// Subtasks have their own lifecycle (todo → in progress → done, with a blocked
-// detour). It is deliberately distinct from TaskStatus: a blocked subtask is not
-// a task "На проверке".
 export type SubtaskStatus = 'todo' | 'inprog' | 'blocked' | 'done';
 export type TicketStatus = 'new' | 'accepted' | 'inprog' | 'closed' | 'rejected';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
@@ -15,7 +12,6 @@ export interface User {
   team: string;
   avatar: string;
   color: string;
-  // Populated from the backend user endpoints (optional so mock data still fits)
   email?: string;
   active?: boolean;
   teamId?: string | null;
@@ -30,8 +26,8 @@ export type ServiceCategory =
   | 'logistics' | 'finance' | 'sales' | 'infrastructure' | 'business_apps';
 
 export interface SLASettings {
-  reaction: number;   // hours
-  resolution: number; // hours
+  reaction: number;
+  resolution: number;
 }
 
 export interface Service {
@@ -46,7 +42,6 @@ export interface Service {
   sla?: SLASettings;
   parentId?: string | null;
   status?: 'active' | 'archived';
-  // legacy infra fields
   infraType?: InfraType;
   infraStatus?: InfraStatus;
 }
@@ -127,7 +122,6 @@ export interface Ticket {
   comments: Comment[];
 }
 
-// Prefill payload used when converting a client ticket into an internal task.
 export interface TaskPrefill {
   title?: string;
   desc?: string;

@@ -21,7 +21,6 @@ async def list_teams(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Managers/teamleads need team lists (e.g. to assign tasks); clients do not
     if current_user.role == UserRole.client:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 

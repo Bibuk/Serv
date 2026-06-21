@@ -8,7 +8,6 @@ import {
 } from '../../api';
 import type { Service, App, ServiceCategory, Priority } from '../../types';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 
 const PRESET_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#EC4899', '#0EA5E9', '#10B981', '#6366F1', '#F59E0B', '#8B5CF6'];
 
@@ -32,15 +31,12 @@ const PRIORITIES: Record<Priority, { label: string; color: string }> = {
   low:      { label: 'Низкий',    color: '#6B7280' },
 };
 
-// Service-catalogue metadata now lives on the backend. These accessors apply
-// sensible fallbacks for services created before the fields existed.
 const svcCategory = (s: Service): ServiceCategory => (s.category && CATEGORIES[s.category] ? s.category : 'infrastructure');
 const svcStatus = (s: Service): 'active' | 'archived' => (s.status === 'archived' ? 'archived' : 'active');
 const svcReaction = (s: Service): number => s.sla?.reaction ?? 4;
 const svcResolution = (s: Service): number => s.sla?.resolution ?? 24;
 const svcPriority = (s: Service): Priority => s.defaultPriority ?? 'medium';
 
-// ── Shared UI ─────────────────────────────────────────────────────────────────
 
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--c-gray-500)', textTransform: 'uppercase' };
 const inputStyle: React.CSSProperties = { padding: '8px 12px', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)' };
@@ -93,7 +89,6 @@ const StatusBadge: React.FC<{ status: 'active' | 'archived' }> = ({ status }) =>
   </span>
 );
 
-// ── Service form ──────────────────────────────────────────────────────────────
 
 interface ServiceForm {
   name: string; description: string; color: string;
@@ -183,7 +178,6 @@ const ServiceFormBody: React.FC<{
   </div>
 );
 
-// ── App form ──────────────────────────────────────────────────────────────────
 
 interface AppForm { name: string; description: string; color: string; linkedServices: string[] }
 const emptyAppForm: AppForm = { name: '', description: '', color: '#2563EB', linkedServices: [] };
@@ -248,7 +242,6 @@ const AppFormBody: React.FC<{
   );
 };
 
-// ── Main screen ───────────────────────────────────────────────────────────────
 
 export const ServicesScreen: React.FC = () => {
   const qc = useQueryClient();
@@ -280,7 +273,6 @@ export const ServicesScreen: React.FC = () => {
     return true;
   }), [allServices, filterStatus, filterCategory]);
 
-  // Open incident counts per service (tasks reference a service by id or name).
   const tasks = useAppStore(s => s.tasks);
   const svcIncidentCounts = React.useMemo(() =>
     tasks.reduce<Record<string, number>>((acc, t) => {
@@ -291,7 +283,6 @@ export const ServicesScreen: React.FC = () => {
     }, {}), [tasks]);
   const incidentsFor = (s: Service) => (svcIncidentCounts[s.id] ?? 0) + (svcIncidentCounts[s.name] ?? 0);
 
-  // Open ticket counts per app (tickets reference an app by id or name).
   const appTicketCounts = React.useMemo(() =>
     tickets.reduce<Record<string, number>>((acc, t) => {
       if (['new', 'accepted', 'inprog'].includes(t.status) && t.app) {
@@ -379,7 +370,6 @@ export const ServicesScreen: React.FC = () => {
   const submitSvc = () => { if (svcForm.name.trim().length < 2) { setFormError('Минимум 2 символа'); return; } setFormError(''); svcSaveM.mutate(); };
   const submitApp = () => { if (appForm.name.trim().length < 2) { setFormError('Минимум 2 символа'); return; } setFormError(''); appSaveM.mutate(); };
 
-  // Category summary for services
   const catCounts = React.useMemo(() => {
     const counts: Partial<Record<ServiceCategory, number>> = {};
     allServices.filter(s => svcStatus(s) === 'active').forEach(s => {
@@ -394,7 +384,7 @@ export const ServicesScreen: React.FC = () => {
   return (
     <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Header */}
+      {}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Сервисы и приложения</h1>
@@ -407,7 +397,7 @@ export const ServicesScreen: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabs + filters */}
+      {}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', gap: 0 }}>
           {(['services', 'apps'] as const).map(t => (
@@ -433,7 +423,7 @@ export const ServicesScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Services tab ── */}
+      {}
       {tab === 'services' && (
         <div className="card" style={{ overflow: 'hidden' }}>
           {servicesQ.isLoading ? (
@@ -510,7 +500,7 @@ export const ServicesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* ── Applications tab ── */}
+      {}
       {tab === 'apps' && (
         <div className="card" style={{ overflow: 'hidden' }}>
           {appsQ.isLoading ? (
@@ -590,7 +580,7 @@ export const ServicesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Modals */}
+      {}
       {svcModal && (
         <Modal title={svcModal.mode === 'edit' ? 'Редактировать сервис' : 'Новый сервис'} onClose={() => setSvcModal(null)}>
           <ServiceFormBody form={svcForm} setForm={setSvcForm} busy={svcSaveM.isPending} error={formError}

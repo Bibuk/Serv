@@ -49,7 +49,6 @@ async def list_subtasks(
     if subtask_status:
         filters.append(Subtask.status == subtask_status)
 
-    # Workers only see their own subtasks
     if current_user.role == UserRole.worker:
         filters.append(Subtask.assignee_id == current_user.id)
 
@@ -89,7 +88,6 @@ async def create_subtask(
     await db.flush()
     await _log_audit(db, current_user.id, "subtask.created", subtask.id)
 
-    # Notify assignee if set
     if body.assignee_id:
         await create_notification(
             db=db,
@@ -118,7 +116,6 @@ async def get_subtask(
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    # Workers can only see their own subtasks
     if current_user.role == UserRole.worker and subtask.assignee_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
@@ -140,11 +137,9 @@ async def update_subtask(
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    # Workers can only update their own subtasks (status only)
     if current_user.role == UserRole.worker:
         if subtask.assignee_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your subtask")
-        # Workers can only change status
         update_data = {}
         if body.status is not None:
             update_data["status"] = body.status
@@ -165,7 +160,6 @@ async def update_subtask(
             {"old": old_status.value, "new": subtask.status.value},
         )
 
-    # If assignee changed, notify new assignee
     if "assignee_id" in update_data and update_data["assignee_id"] and update_data["assignee_id"] != old_assignee_id:
         await create_notification(
             db=db,
@@ -191,7 +185,6 @@ async def delete_subtask(
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    # Delete all file attachments from disk
     files_result = await db.execute(
         select(FileAttachment).where(FileAttachment.subtask_id == subtask_id)
     )
@@ -218,7 +211,6 @@ async def upload_file(
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    # Workers can only upload to their own subtasks
     if current_user.role == UserRole.worker and subtask.assignee_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your subtask")
 
@@ -254,7 +246,6 @@ async def list_files(
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    # Workers can only list files on their own subtasks
     if current_user.role == UserRole.worker and subtask.assignee_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your subtask")
 
@@ -286,7 +277,6 @@ async def download_file(
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
-    # Workers can only download files on their own subtasks
     if current_user.role == UserRole.worker:
         subtask = (
             await db.execute(select(Subtask).where(Subtask.id == subtask_id))
@@ -321,7 +311,6 @@ async def delete_file_attachment(
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
-    # Workers can only delete files they uploaded
     if current_user.role == UserRole.worker and attachment.uploaded_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 

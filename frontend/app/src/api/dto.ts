@@ -1,6 +1,5 @@
 import type { Priority, TaskStatus, TicketStatus } from '../types';
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
 
 export interface LoginDto {
   email: string;
@@ -18,7 +17,6 @@ export interface AuthResponse {
   email: string;
 }
 
-// ── Tasks ─────────────────────────────────────────────────────────────────────
 
 export interface CreateTaskDto {
   title: string;
@@ -42,14 +40,12 @@ export interface UpdateTaskStatusDto {
   status: TaskStatus;
 }
 
-// ── Comments ──────────────────────────────────────────────────────────────────
 
 export interface CreateCommentDto {
   text: string;
   visibleToClient: boolean;
 }
 
-// ── Tickets ───────────────────────────────────────────────────────────────────
 
 export interface CreateTicketDto {
   title: string;
@@ -59,7 +55,6 @@ export interface CreateTicketDto {
   attachments?: string[];
 }
 
-// ── Query params ──────────────────────────────────────────────────────────────
 
 export interface TasksQuery {
   teamId?: string;

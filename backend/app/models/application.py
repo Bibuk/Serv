@@ -30,14 +30,11 @@ class Application(Base, UUIDMixin, TimestampMixin):
         default=ApplicationStatus.active,
     )
 
-    # Relationships
     tickets: Mapped[List["Ticket"]] = relationship(
         "Ticket",
         back_populates="application",
         lazy="noload",
     )
-    # Services this application implements (eager-loaded so list/detail
-    # responses can expose `service_ids` without a manual join).
     services: Mapped[List["Service"]] = relationship(
         "Service",
         secondary=application_services,

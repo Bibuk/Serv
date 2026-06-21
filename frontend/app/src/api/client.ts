@@ -10,7 +10,7 @@ export class ApiError extends Error {
 }
 
 export function setUnauthorizedHandler(_fn: () => void) {
-  /* no-op */
+  void _fn;
 }
 
 let refreshInFlight: Promise<boolean> | null = null;

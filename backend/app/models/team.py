@@ -21,7 +21,6 @@ class Team(Base, UUIDMixin, TimestampMixin):
         nullable=True,
     )
 
-    # Relationships
     teamlead: Mapped[Optional["User"]] = relationship(
         "User",
         foreign_keys=[teamlead_id],

@@ -14,7 +14,6 @@ const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).map(w => 
 const PALETTE = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0EA5E9'];
 const colorOf = (s: string) => { let n = 0; for (let i = 0; i < s.length; i++) n += s.charCodeAt(i); return PALETTE[n % PALETTE.length]; };
 
-// Returns true if the string looks like an internal user ID (no spaces, short, starts with letter+digit pattern)
 const isUserId = (s: string) => !!s && !/\s/.test(s) && /^[a-z]\d+$/i.test(s);
 const supportName = 'Специалист поддержки';
 const supportInitials = 'СП';
@@ -123,8 +122,6 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
 
   const banner = STATUS_BANNER[ticket.status] ?? STATUS_BANNER['new'];
   const currentStatusIdx = STATUS_ORDER.indexOf(ticket.status === 'rejected' ? 'closed' : ticket.status);
-  // Once a live refetch brings back an optimistic comment, drop the local copy
-  // so it isn't shown twice (the WS refresh re-pulls the thread).
   const fetchedComments = commentsQ.data ?? [];
   const fetchedIds = new Set(fetchedComments.map(c => c.id).filter(Boolean));
   const pendingSent = sent.filter(c => !c.id || !fetchedIds.has(c.id));
@@ -147,7 +144,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
 
   return (
     <div style={{ padding: mobile ? 16 : '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Back button */}
+      {}
       <button
         onClick={() => goto('tickets')}
         style={{
@@ -167,7 +164,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
         ← Все заявки
       </button>
 
-      {/* Status banner */}
+      {}
       <div
         style={{
           background: banner.bg,
@@ -191,7 +188,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
         </div>
       </div>
 
-      {/* Satisfaction rating — shown for closed tickets */}
+      {}
       {ticket.status === 'closed' && (
         <div
           style={{
@@ -244,11 +241,11 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
         </div>
       )}
 
-      {/* Main 2-col layout */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 320px', gap: 16, alignItems: 'start' }}>
-        {/* Left column */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Ticket ID + title */}
+          {}
           <div>
             <span className="mono" style={{ fontSize: 12, color: 'var(--c-gray-500)', fontWeight: 600 }}>{ticket.id}</span>
             <h1 style={{ margin: '6px 0 0', fontSize: mobile ? 20 : 24, fontWeight: 700, color: 'var(--c-gray-900)', lineHeight: 1.3 }}>
@@ -256,7 +253,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
             </h1>
           </div>
 
-          {/* Description card */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Описание</span>
@@ -266,7 +263,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
             </div>
           </div>
 
-          {/* Comments card */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Обсуждение</span>
@@ -321,7 +318,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
             </div>
           </div>
 
-          {/* Comment form */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Написать сообщение</span>
@@ -353,7 +350,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
             </div>
           </div>
 
-          {/* Notification info */}
+          {}
           <div
             style={{
               background: '#EFF6FF',
@@ -372,9 +369,9 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
           </div>
         </div>
 
-        {/* Right column */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Info card */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">Информация</span>
@@ -414,7 +411,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
             </div>
           </div>
 
-          {/* History / Timeline card */}
+          {}
           <div className="card">
             <div className="card__head">
               <span className="card__title">История</span>
@@ -438,7 +435,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
                       className="tl-item"
                       style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: i < TIMELINE_STEPS.length - 1 ? 16 : 0, position: 'relative' }}
                     >
-                      {/* Connector line */}
+                      {}
                       {i < TIMELINE_STEPS.length - 1 && (
                         <div
                           style={{
@@ -453,7 +450,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
                           }}
                         />
                       )}
-                      {/* Dot */}
+                      {}
                       <div
                         className="tl-dot"
                         style={{
@@ -473,7 +470,7 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
                           <CheckOutlined style={{ color: '#fff', fontSize: 10 }} />
                         )}
                       </div>
-                      {/* Body */}
+                      {}
                       <div className="tl-body">
                         <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 400, color: isDone ? 'var(--c-gray-900)' : 'var(--c-gray-400)' }}>
                           {isReject ? 'Отклонена' : step.label}

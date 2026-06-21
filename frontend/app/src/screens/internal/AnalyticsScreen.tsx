@@ -67,7 +67,6 @@ export const AnalyticsScreen: React.FC = () => {
     return tasks.filter(t => t.created >= cutoffStr);
   }, [tasks, period]);
 
-  // Line chart: created vs closed (bi-daily buckets matching chosen period)
   const lcData = React.useMemo(() => {
     const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
     const buckets = period === 'all' ? 8 : Math.min(8, Math.ceil(days / 2));
@@ -88,7 +87,6 @@ export const AnalyticsScreen: React.FC = () => {
     });
   }, [tasks, period]);
 
-  // Avg completion time (days) per team — from done tasks: deadline - created
   const avgBars = React.useMemo(() => {
     const acc: Record<string, { total: number; count: number }> = {};
     filteredTasks.filter(t => t.status === 'done').forEach(t => {
@@ -114,7 +112,6 @@ export const AnalyticsScreen: React.FC = () => {
   );
   const activeTickets = tickets.filter(t => !['closed', 'rejected'].includes(t.status)).length;
 
-  // SLA compliance across open tasks in the period.
   const sla = React.useMemo(() => {
     let ok = 0, risk = 0, breached = 0;
     filteredTasks.forEach(t => {
@@ -147,7 +144,7 @@ export const AnalyticsScreen: React.FC = () => {
 
   return (
     <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header */}
+      {}
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Аналитика</h1>
@@ -188,7 +185,7 @@ export const AnalyticsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats row */}
+      {}
       <div className="stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
         <Stat label="Всего задач" value={total} />
         <Stat label="Выполнено" value={done} />
@@ -198,7 +195,7 @@ export const AnalyticsScreen: React.FC = () => {
         <Stat label="Активных заявок" value={activeTickets} />
       </div>
 
-      {/* SLA compliance breakdown */}
+      {}
       <div className="card">
         <div className="card__head">
           <span className="card__title">Соблюдение SLA</span>
@@ -230,9 +227,9 @@ export const AnalyticsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 2x2 chart grid */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Donut chart */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Задачи по статусам</span>
@@ -245,7 +242,7 @@ export const AnalyticsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Line chart */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Создано vs Закрыто</span>
@@ -278,7 +275,7 @@ export const AnalyticsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Avg time bars */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Среднее время выполнения</span>
@@ -302,7 +299,7 @@ export const AnalyticsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Team load bars */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Нагрузка команд</span>
@@ -330,7 +327,7 @@ export const AnalyticsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Overdue tasks table */}
+      {}
       <div className="card">
         <div className="card__head">
           <span className="card__title">Просроченные задачи</span>

@@ -156,13 +156,13 @@ export const ClientProfile: React.FC<Props> = ({ mobile }) => {
 
   return (
     <div style={{ padding: mobile ? 16 : '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header */}
+      {}
       <div>
         <h1 style={{ margin: 0, fontSize: mobile ? 20 : 24, fontWeight: 700, color: 'var(--c-gray-900)' }}>Профиль</h1>
         <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--c-gray-500)' }}>Управление личными данными и настройками</p>
       </div>
 
-      {/* Top card: avatar + info + edit */}
+      {}
       <div className="card" style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <ProfileAvatar avatar={currentUser?.avatar ?? '?'} color={currentUser?.color ?? '#9CA3AF'} />
@@ -176,9 +176,9 @@ export const ClientProfile: React.FC<Props> = ({ mobile }) => {
         </div>
       </div>
 
-      {/* 2-column grid */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-        {/* Personal data card */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Личные данные</span>
@@ -264,7 +264,7 @@ export const ClientProfile: React.FC<Props> = ({ mobile }) => {
           </div>
         </div>
 
-        {/* Notifications card */}
+        {}
         <div className="card">
           <div className="card__head">
             <span className="card__title">Уведомления</span>
@@ -304,7 +304,7 @@ export const ClientProfile: React.FC<Props> = ({ mobile }) => {
         </div>
       </div>
 
-      {/* Security card */}
+      {}
       <div className="card">
         <div
           className="card__head"

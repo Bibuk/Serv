@@ -99,15 +99,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCurrentUser: (user) => set({ currentUser: user }),
   setScreen: (screen, params = {}) => set(s => ({
     screen,
-    // Merge params only when staying on the same screen (e.g. updating ?view=);
-    // switching screens clears stale params from the previous route.
     params: s.screen === screen ? { ...s.params, ...params } : params,
   })),
   setDrawerTaskId: (id) => set({ drawerTaskId: id }),
   setModal: (modal) => set({ modal }),
   setTaskPrefill: (taskPrefill) => set({ taskPrefill }),
-  // Single entry point for opening the create-task modal. Pass a prefill to
-  // start from a client ticket; pass nothing for a blank task.
   openCreateTask: (prefill = null) => set({ taskPrefill: prefill, modal: 'create-task' }),
   setMobile: (mobile) => set({ mobile }),
   setToast: (toast) => set({ toast }),
@@ -134,7 +130,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   addNotification: (n) => set(s => (
     s.notifications.some(x => x.id === n.id)
-      ? {}                                   // already known (e.g. poll race) — skip
+      ? {}
       : { notifications: [n, ...s.notifications] }
   )),
   markNotificationRead: (id) => set(s => ({

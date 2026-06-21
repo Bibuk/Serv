@@ -34,7 +34,6 @@ class Comment(Base, UUIDMixin, TimestampMixin):
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     is_visible_to_client: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # Relationships
     author: Mapped["User"] = relationship(
         "User",
         back_populates="comments",

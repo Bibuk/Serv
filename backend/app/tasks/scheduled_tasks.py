@@ -28,7 +28,6 @@ async def _check_deadlines_async() -> None:
     warning_threshold = now + timedelta(hours=24)
 
     async with AsyncSessionLocal() as db:
-        # Check tasks with deadlines within 24 hours
         task_result = await db.execute(
             select(Task).where(
                 and_(
@@ -41,7 +40,6 @@ async def _check_deadlines_async() -> None:
         tasks = task_result.scalars().all()
 
         for task in tasks:
-            # Notify the creator (manager)
             await create_notification(
                 db=db,
                 user_id=task.created_by,
@@ -50,7 +48,6 @@ async def _check_deadlines_async() -> None:
                 entity_type=NotificationEntityType.task,
                 entity_id=task.id,
             )
-            # Notify teamlead if assigned
             if task.team_id:
                 team_result = await db.execute(
                     select(User).where(
@@ -72,7 +69,6 @@ async def _check_deadlines_async() -> None:
                         entity_id=task.id,
                     )
 
-        # Check subtasks with deadlines within 24 hours
         subtask_result = await db.execute(
             select(Subtask).where(
                 and_(

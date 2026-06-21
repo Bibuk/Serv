@@ -85,19 +85,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ portal: initialPortal 
     <div className="login-bg">
       <div className="login-card">
 
-        {/* Logo */}
+        {}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
           <BrandLogo />
         </div>
 
-        {/* Subtitle */}
+        {}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' }}>
             {isClient ? 'Клиентский портал' : 'Система управления IT-задачами'}
           </div>
         </div>
 
-        {/* Divider */}
+        {}
         <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 24 }} />
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -207,7 +207,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ portal: initialPortal 
           )}
         </div>
 
-        {/* Info */}
+        {}
         <div style={{
           marginTop: 24,
           padding: '11px 14px',

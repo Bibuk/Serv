@@ -21,7 +21,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # subtask_id is no longer mandatory — an attachment may belong to a task.
     op.alter_column("file_attachments", "subtask_id", existing_type=postgresql.UUID(as_uuid=True), nullable=True)
 
     op.add_column(
@@ -49,5 +48,4 @@ def downgrade() -> None:
     op.drop_constraint("fk_file_attachments_task_id", "file_attachments", type_="foreignkey")
     op.drop_index("ix_file_attachments_task_id", table_name="file_attachments")
     op.drop_column("file_attachments", "task_id")
-    # Restore NOT NULL (only safe if no task-only rows remain).
     op.alter_column("file_attachments", "subtask_id", existing_type=postgresql.UUID(as_uuid=True), nullable=False)

@@ -20,7 +20,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # services: new metadata columns
     op.add_column("services", sa.Column("category", sa.String(50), nullable=True))
     op.add_column(
         "services",
@@ -46,7 +45,6 @@ def upgrade() -> None:
         sa.Column("status", sa.String(20), nullable=False, server_default="active"),
     )
 
-    # application ↔ service links
     op.create_table(
         "application_services",
         sa.Column("application_id", postgresql.UUID(as_uuid=True), nullable=False),

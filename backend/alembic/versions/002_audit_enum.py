@@ -19,6 +19,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # PostgreSQL cannot drop a value from an enum; leaving the values in place
-    # is harmless. No-op downgrade.
     pass

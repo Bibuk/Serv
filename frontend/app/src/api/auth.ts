@@ -6,7 +6,6 @@ import { TEAM } from '../data/mock';
 const USE_MOCK = import.meta.env.VITE_API_MOCK !== 'false';
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-// Maps email prefix to role for mock login
 const MOCK_ROLE_MAP: Record<string, string> = {
   admin:    'u11',
   teamlead: 'u2',
@@ -23,7 +22,7 @@ function mockUserFromEmail(email: string, portal: 'internal' | 'client'): { user
   }
   const prefix = email.split('@')[0].toLowerCase();
   const matched = Object.keys(MOCK_ROLE_MAP).find(k => prefix.startsWith(k));
-  const userId = matched ? MOCK_ROLE_MAP[matched] : 'u1'; // default: manager
+  const userId = matched ? MOCK_ROLE_MAP[matched] : 'u1';
   const user = TEAM.find(u => u.id === userId) ?? TEAM[0];
   return { user, role: user.role as Role };
 }
@@ -71,7 +70,6 @@ export async function authLogout(): Promise<void> {
   await apiClient.post<void>('/auth/logout');
 }
 
-// Called on app bootstrap to restore session from httpOnly cookie
 export async function authMe(): Promise<AuthResult | null> {
   if (USE_MOCK) return null;
   try {

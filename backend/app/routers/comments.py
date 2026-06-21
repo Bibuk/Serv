@@ -35,7 +35,6 @@ async def _notify_on_comment(
         result = await db.execute(select(Task).where(Task.id == entity_id))
         task = result.scalar_one_or_none()
         if task:
-            # Notify task creator (manager) and teamlead
             if task.created_by != author.id:
                 recipients.add(task.created_by)
             if task.team_id:
@@ -44,7 +43,6 @@ async def _notify_on_comment(
                 team = team_res.scalar_one_or_none()
                 if team and team.teamlead_id and team.teamlead_id != author.id:
                     recipients.add(team.teamlead_id)
-            # A client-visible comment on a ticket-linked task reaches the client.
             if comment.is_visible_to_client and task.ticket_id:
                 tk = (await db.execute(select(Ticket).where(Ticket.id == task.ticket_id))).scalar_one_or_none()
                 if tk and tk.client_id != author.id:
@@ -59,7 +57,6 @@ async def _notify_on_comment(
         if subtask:
             if subtask.assignee_id and subtask.assignee_id != author.id:
                 recipients.add(subtask.assignee_id)
-            # Also notify parent task creator
             task_res = await db.execute(select(Task).where(Task.id == subtask.task_id))
             parent = task_res.scalar_one_or_none()
             if parent and parent.created_by != author.id:
@@ -72,10 +69,8 @@ async def _notify_on_comment(
         result = await db.execute(select(Ticket).where(Ticket.id == entity_id))
         ticket = result.scalar_one_or_none()
         if ticket:
-            # Notify client if manager commented (and comment is visible to client)
             if comment.is_visible_to_client and ticket.client_id != author.id:
                 recipients.add(ticket.client_id)
-            # Notify managers if client commented
             if author.role == UserRole.client:
                 managers_res = await db.execute(
                     select(User).where(and_(User.role == UserRole.manager, User.is_active == True))
@@ -83,8 +78,6 @@ async def _notify_on_comment(
                 for m in managers_res.scalars().all():
                     if m.id != author.id:
                         recipients.add(m.id)
-                # Also notify the team working the linked task, so staff in the
-                # task drawer see the client's message in real time.
                 if ticket.task_id:
                     linked = (await db.execute(select(Task).where(Task.id == ticket.task_id))).scalar_one_or_none()
                     if linked:
@@ -122,9 +115,6 @@ async def list_comments(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # A task and its linked ticket form one conversation. Staff comment on the
-    # task; the client reads the ticket. Bridge the two so client-facing comments
-    # are shared across the link instead of being siloed in separate threads.
     pairs: list[tuple[CommentEntityType, uuid.UUID]] = [(entity_type, entity_id)]
     if entity_type == CommentEntityType.ticket:
         ticket = (await db.execute(select(Ticket).where(Ticket.id == entity_id))).scalar_one_or_none()
@@ -140,7 +130,6 @@ async def list_comments(
     ])
     filters = [pair_filter]
 
-    # Clients only see comments marked visible_to_client (on the ticket or its task)
     if current_user.role == UserRole.client:
         if entity_type != CommentEntityType.ticket:
             raise HTTPException(
@@ -176,9 +165,6 @@ async def create_comment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Clients can only comment on tickets. A client's own comment is inherently
-    # client-facing, so it must be flagged visible — otherwise the visibility
-    # filter would hide the client's own messages from them after a reload.
     if current_user.role == UserRole.client:
         if body.entity_type != CommentEntityType.ticket:
             raise HTTPException(
@@ -206,7 +192,6 @@ async def create_comment(
         {"comment_id": str(comment.id)},
     )
 
-    # Notify relevant parties (§6.1/6.2)
     await _notify_on_comment(db, comment, current_user)
 
     return CommentOut.model_validate(comment)

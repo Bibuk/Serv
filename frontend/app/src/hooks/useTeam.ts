@@ -14,9 +14,6 @@ export interface MyTeamResult {
   refetch: () => void;
 }
 
-// Resolves the current teamlead's team and its members from the backend.
-// Matches by teamlead id first, then by team name (covers mock mode where the
-// session user's `team` is a name rather than an id).
 export function useMyTeam(): MyTeamResult {
   const currentUser = useAppStore(s => s.currentUser);
   const q = useQuery({ queryKey: ['teams'], queryFn: () => getTeams() });

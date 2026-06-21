@@ -53,9 +53,6 @@ async def clear_tables(session: AsyncSession) -> None:
 
 
 async def seed(session: AsyncSession) -> None:
-    # ------------------------------------------------------------------ #
-    # Teams                                                                #
-    # ------------------------------------------------------------------ #
     team_frontend = Team(id=uuid.uuid4(), name="Frontend")
     team_backend = Team(id=uuid.uuid4(), name="Backend")
     team_qa = Team(id=uuid.uuid4(), name="QA")
@@ -66,9 +63,6 @@ async def seed(session: AsyncSession) -> None:
     session.add_all(teams)
     await session.flush()
 
-    # ------------------------------------------------------------------ #
-    # Users                                                                #
-    # ------------------------------------------------------------------ #
     def mk(email, name, role, pwd, team=None, active=True):
         return User(
             id=uuid.uuid4(), email=email, password_hash=hash_password(pwd),
@@ -89,7 +83,6 @@ async def seed(session: AsyncSession) -> None:
     tl_mobile = mk("tl.mobile@2ltp.ru", "Игорь Мобайлов", UserRole.teamlead, "Teamlead123!", team_mobile)
     tl_data = mk("tl.data@2ltp.ru", "Елена Данных", UserRole.teamlead, "Teamlead123!", team_data)
 
-    # Workers (keep worker1..6 for credential compatibility, add more)
     worker1 = mk("worker1@2ltp.ru", "Дмитрий Иванов", UserRole.worker, "Worker123!", team_frontend)
     worker2 = mk("worker2@2ltp.ru", "Ольга Петрова", UserRole.worker, "Worker123!", team_frontend)
     worker3 = mk("worker3@2ltp.ru", "Михаил Сидоров", UserRole.worker, "Worker123!", team_backend)
@@ -136,11 +129,6 @@ async def seed(session: AsyncSession) -> None:
         team_data.id: [worker13],
     }
 
-    # ------------------------------------------------------------------ #
-    # Services & Applications                                              #
-    # ------------------------------------------------------------------ #
-    # svc(name, color, desc, category, responsible team, default priority,
-    #     SLA reaction hours, SLA resolution hours)
     def svc(name, color, desc, category, team, priority, reaction, resolution):
         return Service(
             id=uuid.uuid4(), name=name, color=color, description=desc,
@@ -187,7 +175,6 @@ async def seed(session: AsyncSession) -> None:
                 app_wms, app_crm, app_1c_zup, app_print, app_zabbix, app_vpn, app_veeam]
     session.add_all(all_apps)
 
-    # Which services each application implements (app → service links).
     app_erp.services      = [s_wms, s_1c, s_b2b]
     app_1c_buh.services   = [s_1c]
     app_oracle.services   = [s_wms]
@@ -204,10 +191,6 @@ async def seed(session: AsyncSession) -> None:
     app_veeam.services    = [s_backup]
     await session.flush()
 
-    # ------------------------------------------------------------------ #
-    # Tasks (2LTP incidents and support tasks)                             #
-    # ------------------------------------------------------------------ #
-    # (title, desc, priority, status, service, team, creator, deadline_days)
     task_defs = [
         ("Сбой репликации 1С:Бухгалтерии — не обновляется база",
          "После планового обновления сервера репликация между основным узлом и резервным перестала работать. Пользователи бухгалтерии не могут вносить проводки. Восстановить репликацию и провести тест целостности данных.",
@@ -313,16 +296,12 @@ async def seed(session: AsyncSession) -> None:
             service_id=service.id, created_by=creator.id, deadline=days_from_now(dd),
             updated_at=now(),
         )
-        # Draft tasks are not yet assigned to a team.
         if st != TaskStatus.draft:
             t.team_id = team.id
         tasks.append(t)
     session.add_all(tasks)
     await session.flush()
 
-    # ------------------------------------------------------------------ #
-    # Subtasks — populate active tasks so worker/teamlead screens are rich #
-    # ------------------------------------------------------------------ #
     SUB_TITLES = [
         "Подготовить технический анализ", "Реализовать основную логику",
         "Написать unit-тесты", "Code review и правки", "Обновить документацию",
@@ -337,11 +316,10 @@ async def seed(session: AsyncSession) -> None:
     si = 0
     for t in tasks:
         if t.status in (TaskStatus.draft, TaskStatus.assigned):
-            # assigned: a couple of planned subtasks; draft: none
             count = 2 if t.status == TaskStatus.assigned else 0
         elif t.status == TaskStatus.done:
             count = 3
-        else:  # in_progress / review
+        else:
             count = 4
         workers = team_workers.get(t.team_id, [])
         if not workers:
@@ -352,7 +330,6 @@ async def seed(session: AsyncSession) -> None:
             else:
                 st = sub_status_cycle[si % len(sub_status_cycle)]
             assignee = workers[k % len(workers)]
-            # Mix in some overdue and upcoming deadlines.
             deadline = days_ago(2) if (si % 5 == 0 and st != SubtaskStatus.done) else days_from_now(3 + (si % 6))
             subtasks.append(Subtask(
                 id=uuid.uuid4(), title=f"{SUB_TITLES[si % len(SUB_TITLES)]} — {t.title[:24]}",
@@ -363,10 +340,6 @@ async def seed(session: AsyncSession) -> None:
     session.add_all(subtasks)
     await session.flush()
 
-    # ------------------------------------------------------------------ #
-    # Tickets (2LTP support requests)                                      #
-    # ------------------------------------------------------------------ #
-    # (title, desc, priority, status, client, app, linked_task)
     ticket_defs = [
         ("Недоступен Exchange — не приходят входящие письма",
          "С утра сотрудники финансового отдела не получают входящих писем. Исходящие уходят, входящие зависают в очереди на сервере. Проблема у 12 пользователей.",
@@ -434,9 +407,6 @@ async def seed(session: AsyncSession) -> None:
     session.add_all(tickets)
     await session.flush()
 
-    # ------------------------------------------------------------------ #
-    # Comments                                                            #
-    # ------------------------------------------------------------------ #
     def tcomment(body, author, ticket, visible=True):
         return Comment(id=uuid.uuid4(), body=body, author_id=author.id,
                        entity_type=CommentEntityType.ticket, entity_id=ticket.id,
@@ -468,9 +438,6 @@ async def seed(session: AsyncSession) -> None:
     ]
     session.add_all(comments)
 
-    # ------------------------------------------------------------------ #
-    # Notifications                                                       #
-    # ------------------------------------------------------------------ #
     def notif(user, title, body, etype, eid, read=False):
         return Notification(id=uuid.uuid4(), user_id=user.id, title=title, body=body,
                             entity_type=etype, entity_id=eid, is_read=read)
@@ -492,9 +459,6 @@ async def seed(session: AsyncSession) -> None:
     ]
     session.add_all(notifications)
 
-    # ------------------------------------------------------------------ #
-    # Audit log — populate the admin journal                              #
-    # ------------------------------------------------------------------ #
     def audit(actor, action, etype, eid, meta=None):
         return AuditLog(id=uuid.uuid4(), user_id=actor.id, action=action,
                         entity_type=etype, entity_id=eid, meta=meta or {})
@@ -535,8 +499,6 @@ async def seed(session: AsyncSession) -> None:
 async def main(if_empty: bool = False) -> None:
     async with AsyncSessionLocal() as session:
         if if_empty:
-            # Guard for automated (startup) seeding: never wipe a database that
-            # already holds data — only seed a truly fresh one.
             existing = await session.execute(text("SELECT 1 FROM users LIMIT 1"))
             if existing.first() is not None:
                 print("Database already seeded — skipping.")

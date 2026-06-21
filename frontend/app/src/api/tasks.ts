@@ -96,7 +96,6 @@ export async function updateTaskStatus(id: string, status: TaskStatus): Promise<
   return mapTask(await apiClient.patch(`/tasks/${id}/status`, { status: toBackendTaskStatus(status) }));
 }
 
-// Teamlead accepts an assigned task → moves it to in-progress.
 export async function acceptTask(id: string): Promise<Task> {
   if (USE_MOCK) {
     await delay(120);
@@ -107,7 +106,6 @@ export async function acceptTask(id: string): Promise<Task> {
   return mapTask(await apiClient.post(`/tasks/${id}/accept`));
 }
 
-// Teamlead submits an in-progress task for manager review.
 export async function submitTaskReview(id: string): Promise<Task> {
   if (USE_MOCK) {
     await delay(120);
@@ -118,7 +116,6 @@ export async function submitTaskReview(id: string): Promise<Task> {
   return mapTask(await apiClient.post(`/tasks/${id}/submit-review`));
 }
 
-// Manager assigns a draft task to a team → moves it to 'assigned'.
 export async function assignTask(id: string, teamId: string): Promise<Task> {
   if (USE_MOCK) {
     await delay(150);
@@ -129,7 +126,6 @@ export async function assignTask(id: string, teamId: string): Promise<Task> {
   return mapTask(await apiClient.post(`/tasks/${id}/assign`, { team_id: teamId }));
 }
 
-// Manager approves a task under review → moves it to 'done'.
 export async function approveTask(id: string): Promise<Task> {
   if (USE_MOCK) {
     await delay(120);
@@ -140,7 +136,6 @@ export async function approveTask(id: string): Promise<Task> {
   return mapTask(await apiClient.post(`/tasks/${id}/approve`));
 }
 
-// Manager rejects a task with a reason → moves it to 'rejected'.
 export async function rejectTask(id: string, reason: string): Promise<Task> {
   if (USE_MOCK) {
     await delay(120);
@@ -151,7 +146,6 @@ export async function rejectTask(id: string, reason: string): Promise<Task> {
   return mapTask(await apiClient.post(`/tasks/${id}/reject`, { reason }));
 }
 
-// Worker's own subtasks (backend scopes the list to the caller for workers).
 export async function getMySubtasks(workerId?: string): Promise<Subtask[]> {
   if (USE_MOCK) {
     await delay(60);
@@ -165,13 +159,11 @@ export async function getMySubtasks(workerId?: string): Promise<Subtask[]> {
   return unwrap(data).map(mapSubtask as (s: unknown) => Subtask);
 }
 
-// Comments for a task (stored on the shared /comments resource).
 export async function getTaskComments(taskId: string): Promise<Comment[]> {
   if (USE_MOCK) {
     await delay(40);
     const task = TASKS.find(t => t.id === taskId);
     if (!task) return [];
-    // Bridge: task thread + comments from the linked client ticket.
     const out = [...(task.comments ?? [])];
     if (task.ticket) {
       const tk = TICKETS.find(t => t.id === task.ticket);
@@ -202,7 +194,6 @@ export async function addTaskComment(id: string, dto: CreateCommentDto): Promise
   return { id: c.id, author: c.author_id, date: c.created_at, text: c.body, visibleToClient: c.is_visible_to_client };
 }
 
-// ── Subtasks ──────────────────────────────────────────────────────────────────
 
 export interface CreateSubtaskDto {
   title: string;
@@ -257,7 +248,6 @@ export async function deleteSubtask(_taskId: string, subtaskId: string): Promise
   await apiClient.delete(`/subtasks/${subtaskId}`);
 }
 
-// ── File attachments ─────────────────────────────────────────────────────────
 
 interface RawFileAttachment {
   id: string;

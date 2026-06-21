@@ -6,41 +6,35 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
-# Load .env if present
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
 
-# Alembic Config object
 config = context.config
 
-# Override sqlalchemy.url from env if set
 db_url = os.getenv("DATABASE_URL")
 if db_url:
     config.set_main_option("sqlalchemy.url", db_url)
 
-# Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import all models so Alembic can detect them
-from app.database import Base  # noqa: E402
+from app.database import Base
 
-# Import all model modules to register them with Base
-import app.models.user       # noqa: F401
-import app.models.team       # noqa: F401
-import app.models.associations  # noqa: F401
-import app.models.application  # noqa: F401
-import app.models.service    # noqa: F401
-import app.models.ticket     # noqa: F401
-import app.models.task       # noqa: F401
-import app.models.subtask    # noqa: F401
-import app.models.comment    # noqa: F401
-import app.models.notification  # noqa: F401
-import app.models.audit_log  # noqa: F401
-import app.models.file_attachment  # noqa: F401
+import app.models.user
+import app.models.team
+import app.models.associations
+import app.models.application
+import app.models.service
+import app.models.ticket
+import app.models.task
+import app.models.subtask
+import app.models.comment
+import app.models.notification
+import app.models.audit_log
+import app.models.file_attachment
 
 target_metadata = Base.metadata
 

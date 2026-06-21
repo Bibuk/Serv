@@ -31,7 +31,6 @@ export const ManagerReviewScreen: React.FC<Props> = ({ tasks, openDrawer, setTas
     [tasks],
   );
 
-  // Tasks whose deadline already passed but still sit in review.
   const overdueCount = reviewTasks.filter(t => {
     if (!t.deadline) return false;
     return new Date(t.deadline + 'T23:59:59') < new Date();
@@ -63,7 +62,7 @@ export const ManagerReviewScreen: React.FC<Props> = ({ tasks, openDrawer, setTas
 
   return (
     <div>
-      {/* Page header */}
+      {}
       <div className="page-header">
         <div>
           <h1 className="page-title">Задачи на проверке</h1>
@@ -71,7 +70,7 @@ export const ManagerReviewScreen: React.FC<Props> = ({ tasks, openDrawer, setTas
         </div>
       </div>
 
-      {/* Stats */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
         <Stat
           label="Ожидают проверки"
@@ -98,7 +97,7 @@ export const ManagerReviewScreen: React.FC<Props> = ({ tasks, openDrawer, setTas
         />
       </div>
 
-      {/* Empty state */}
+      {}
       {reviewTasks.length === 0 ? (
         <div className="card">
           <div style={{ padding: '56px 0', textAlign: 'center', color: 'var(--c-gray-400)' }}>
@@ -123,7 +122,7 @@ export const ManagerReviewScreen: React.FC<Props> = ({ tasks, openDrawer, setTas
                 onMouseLeave={e => (e.currentTarget.style.boxShadow = '')}
               >
                 <div style={{ padding: 16, display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                  {/* Left: task info */}
+                  {}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-gray-900)' }}>{task.title}</span>
@@ -152,7 +151,7 @@ export const ManagerReviewScreen: React.FC<Props> = ({ tasks, openDrawer, setTas
                     </div>
                   </div>
 
-                  {/* Right: review actions */}
+                  {}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     <button
                       className="btn btn--primary btn--sm"

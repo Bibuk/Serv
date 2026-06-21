@@ -10,7 +10,6 @@ import { ROLE_LABEL, CURRENT_USER_BY_ROLE } from './constants';
 
 export { SidebarIcon } from './SidebarIcon';
 
-// Nav items per role
 const INTERNAL_NAV: Record<string, Array<{
   section?: string;
   id?: string;
@@ -106,22 +105,18 @@ export const InternalShell: React.FC<InternalShellProps> = ({
     users: 0,
   };
 
-  // Filter nav items by sidebar search query
   const filteredItems = React.useMemo(() => {
     if (!sidebarQ) return items;
     const q = sidebarQ.toLowerCase();
-    // Determine which item ids match
     const matchingIds = new Set(
       items
         .filter(it => it.id && it.label && it.label.toLowerCase().includes(q))
         .map(it => it.id as string)
     );
-    // Keep sections that have at least one matching item beneath them
     const result: typeof items = [];
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (it.section) {
-        // Lookahead: any item between this section and the next section matches?
         let hasmatch = false;
         for (let j = i + 1; j < items.length; j++) {
           if (items[j].section) break;
@@ -140,7 +135,7 @@ export const InternalShell: React.FC<InternalShellProps> = ({
 
   return (
     <div className="shell-internal">
-      {/* Sidebar */}
+      {}
       <aside className="sidebar">
         <div className="sidebar__top">
           <div className="sidebar__brand">
@@ -242,9 +237,9 @@ export const InternalShell: React.FC<InternalShellProps> = ({
         </div>
       </aside>
 
-      {/* Main content */}
+      {}
       <div className="main">
-        {/* Topbar */}
+        {}
         <div className="topbar">
           <div className="crumbs">
             <SidebarIcon name="home" size={14} />

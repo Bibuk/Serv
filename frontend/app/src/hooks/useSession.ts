@@ -9,9 +9,6 @@ function roleMatchesPortal(role: string): boolean {
   return PORTAL === 'client' ? role === 'client' : role !== 'client';
 }
 
-// Called once on app mount. Checks httpOnly JWT cookie via /api/auth/me.
-// If the authenticated user's role doesn't match the portal, the cookie is
-// cleared so a cross-portal session cannot bleed through.
 export function useSession() {
   const [isChecking, setIsChecking] = useState(true);
   const setCurrentUser = useAppStore(s => s.setCurrentUser);
@@ -25,12 +22,10 @@ export function useSession() {
           setCurrentUser(result.user);
           switchRole(result.role);
         } else {
-          // Cookie belongs to a different portal — revoke it silently.
           await authLogout().catch(() => {});
         }
       })
       .finally(() => setIsChecking(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { isChecking };

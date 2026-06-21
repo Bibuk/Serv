@@ -3,9 +3,7 @@ import { useAppStore } from '../store/appStore';
 
 interface AvatarProps {
   userId: string;
-  /** Override display name — skips the store lookup when provided. */
   name?: string;
-  /** Override avatar colour — skips the store lookup when provided. */
   color?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   bordered?: boolean;
@@ -25,7 +23,6 @@ function initials(name: string): string {
 }
 
 export const UserAvatar: React.FC<AvatarProps> = ({ userId, name: nameProp, color: colorProp, size = 'sm', bordered = true }) => {
-  // Try props first (cheapest), then store, then derive from userId.
   const storeUser = useAppStore(s => s.users.find(u => u.id === userId));
   const displayName = nameProp ?? storeUser?.name ?? userId;
   const displayColor = colorProp ?? storeUser?.color ?? colorFromString(userId);

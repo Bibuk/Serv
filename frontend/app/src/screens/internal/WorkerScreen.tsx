@@ -1,14 +1,10 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Task, SubtaskStatus, Subtask } from '../../types';
-import { StatusPill, PriorityBadge, Deadline, Stat } from '../../components';
+import { StatusPill, PriorityBadge, Deadline, Stat, Attachments } from '../../components';
 import { SidebarIcon } from '../../shells';
 import { useAppStore } from '../../store/appStore';
-import {
-  getMySubtasks, updateSubtask,
-  getSubtaskFiles, uploadSubtaskFile, deleteSubtaskFile,
-} from '../../api';
-import type { FileAttachment } from '../../api';
+import { getMySubtasks, updateSubtask } from '../../api';
 
 interface Props {
   openDrawer: (id: string) => void;
@@ -23,111 +19,7 @@ const STATUS_CONFIG: { status: SubtaskStatus; label: string; color: string; dot:
   { status: 'done',    label: 'Выполнено',      color: '#059669', dot: 'kcol__dot-done' },
 ];
 
-const formatSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} Б`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
-};
 
-// ── File Attachments ─────────────────────────────────────────────────────────
-
-const SubtaskFiles: React.FC<{ subtaskId: string }> = ({ subtaskId }) => {
-  const qc = useQueryClient();
-  const setToast = useAppStore(s => s.setToast);
-  const [open, setOpen] = React.useState(false);
-  const fileRef = React.useRef<HTMLInputElement>(null);
-
-  const filesQ = useQuery<FileAttachment[]>({
-    queryKey: ['subtask-files', subtaskId],
-    queryFn: () => getSubtaskFiles(subtaskId),
-    enabled: open,
-    staleTime: 30_000,
-  });
-
-  const uploadM = useMutation({
-    mutationFn: (file: File) => uploadSubtaskFile(subtaskId, file),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['subtask-files', subtaskId] }); setToast({ kind: 'success', msg: 'Файл загружен' }); },
-    onError: (e: Error) => setToast({ kind: 'error', msg: e.message || 'Ошибка загрузки' }),
-  });
-
-  const deleteM = useMutation({
-    mutationFn: (fileId: string) => deleteSubtaskFile(subtaskId, fileId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['subtask-files', subtaskId] }); setToast({ kind: 'success', msg: 'Файл удалён' }); },
-    onError: (e: Error) => setToast({ kind: 'error', msg: e.message || 'Ошибка удаления' }),
-  });
-
-  const files = filesQ.data ?? [];
-
-  return (
-    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
-        onClick={() => setOpen(o => !o)}
-      >
-        <SidebarIcon name="paperclip" size={12} />
-        <span style={{ fontSize: 12, color: 'var(--c-gray-500)', flex: 1 }}>
-          Вложения{files.length > 0 ? ` (${files.length})` : ''}
-        </span>
-        <SidebarIcon name={open ? 'chevronUp' : 'chevronDown'} size={11} />
-      </div>
-
-      {open && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {filesQ.isLoading ? (
-            <span style={{ fontSize: 11, color: 'var(--c-gray-400)' }}>Загрузка…</span>
-          ) : files.length === 0 ? (
-            <span style={{ fontSize: 11, color: 'var(--c-gray-400)' }}>Нет вложений</span>
-          ) : files.map(f => (
-            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <SidebarIcon name="fileText" size={11} />
-              <a
-                href={`/api/subtasks/${subtaskId}/files/${f.id}/download`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ flex: 1, fontSize: 11, color: 'var(--c-blue-600)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none' }}
-                title={f.filename}
-              >
-                {f.filename}
-              </a>
-              <span style={{ fontSize: 10, color: 'var(--c-gray-400)', flexShrink: 0 }}>{formatSize(f.sizeBytes)}</span>
-              <button
-                className="iconbtn"
-                style={{ color: 'var(--c-gray-400)', padding: 2, flexShrink: 0 }}
-                disabled={deleteM.isPending}
-                onClick={() => deleteM.mutate(f.id)}
-                title="Удалить файл"
-              >
-                <SidebarIcon name="x" size={11} />
-              </button>
-            </div>
-          ))}
-          <div style={{ marginTop: 2 }}>
-            <input
-              ref={fileRef}
-              type="file"
-              style={{ display: 'none' }}
-              onChange={e => {
-                const f = e.target.files?.[0];
-                if (f) { uploadM.mutate(f); e.target.value = ''; }
-              }}
-            />
-            <button
-              className="btn btn--ghost btn--sm"
-              style={{ fontSize: 11, padding: '3px 8px', gap: 4 }}
-              disabled={uploadM.isPending}
-              onClick={() => fileRef.current?.click()}
-            >
-              <SidebarIcon name="upload" size={11} />
-              {uploadM.isPending ? 'Загрузка…' : 'Прикрепить файл'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Main Screen ──────────────────────────────────────────────────────────────
 
 export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
   const qc = useQueryClient();
@@ -170,7 +62,6 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
 
   const visibleSubtasks = showDone ? allSubtasks : allSubtasks.filter(s => s.status !== 'done');
 
-  // ── Drag helpers (kanban) ──────────────────────────────────────────────────
 
   const onDragStart = (id: string) => (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', id);
@@ -187,7 +78,6 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
     setDraggingId(null); setDropTarget(null);
   };
 
-  // ── Subtask Card (list view) ───────────────────────────────────────────────
 
   const SubtaskCard: React.FC<{ sub: Subtask }> = ({ sub }) => {
     const pt = parentTask(sub.taskId);
@@ -201,7 +91,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
         flexDirection: 'column',
         gap: 10,
       }}>
-        {/* Task link + status */}
+        {}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           {sub.taskId ? (
             <button
@@ -220,18 +110,18 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
           <StatusPill status={sub.status} />
         </div>
 
-        {/* Subtask title */}
+        {}
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--c-gray-800)', lineHeight: 1.4 }}>
           {sub.title}
         </div>
 
-        {/* Priority + deadline */}
+        {}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {pt?.priority && <PriorityBadge priority={pt.priority} />}
           {sub.deadline && <Deadline date={sub.deadline} compact />}
         </div>
 
-        {/* Action buttons */}
+        {}
         <div style={{ display: 'flex', gap: 6, paddingTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
           {sub.status === 'todo' && (
             <button className="btn btn--primary btn--sm" disabled={statusM.isPending} onClick={() => setStatus(sub, 'inprog')}>
@@ -260,13 +150,11 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
           )}
         </div>
 
-        {/* File attachments */}
-        <SubtaskFiles subtaskId={sub.id} />
+        <Attachments kind="subtask" id={sub.id} canDelete collapsible compact />
       </div>
     );
   };
 
-  // ── Kanban card (compact) ──────────────────────────────────────────────────
 
   const KanbanCard: React.FC<{ sub: Subtask }> = ({ sub }) => {
     const pt = parentTask(sub.taskId);
@@ -290,7 +178,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
           <div style={{ marginTop: 6 }}><PriorityBadge priority={pt.priority} /></div>
         )}
 
-        {/* Workflow shortcut */}
+        {}
         <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
           {sub.status === 'todo' && (
             <button className="btn btn--primary btn--sm" style={{ width: '100%', justifyContent: 'center', gap: 4 }} disabled={statusM.isPending} onClick={() => setStatus(sub, 'inprog')}>
@@ -322,11 +210,10 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
     );
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div>
-      {/* Header */}
+      {}
       <div className="page-header">
         <div>
           <h1 className="page-title">Мои подзадачи</h1>
@@ -361,7 +248,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
         </div>
       </div>
 
-      {/* Stats */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         <Stat label="Активных" value={activeCount} />
         <Stat label="Заблокировано" value={blockedCount} alert={blockedCount > 0} />
@@ -369,7 +256,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
         <Stat label="Выполнено" value={doneCount} />
       </div>
 
-      {/* Loading / Error */}
+      {}
       {subtasksQ.isLoading && (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--c-gray-400)', fontSize: 13 }}>Загрузка…</div>
       )}
@@ -379,7 +266,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
         </div>
       )}
 
-      {/* List view */}
+      {}
       {!subtasksQ.isLoading && !subtasksQ.isError && view === 'list' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
           {STATUS_CONFIG.filter(cfg => showDone || cfg.status !== 'done').map(({ status, label, color }) => {
@@ -408,7 +295,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
         </div>
       )}
 
-      {/* Kanban view */}
+      {}
       {!subtasksQ.isLoading && !subtasksQ.isError && view === 'kanban' && (
         <div className="kanban" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {STATUS_CONFIG.map(cfg => {

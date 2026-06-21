@@ -24,11 +24,11 @@ celery_app.conf.update(
     beat_schedule={
         "check-deadlines-hourly": {
             "task": "app.tasks.scheduled_tasks.check_deadlines",
-            "schedule": crontab(minute=0),  # every hour at :00
+            "schedule": crontab(minute=0),
         },
         "auto-archive-tasks-daily": {
             "task": "app.tasks.scheduled_tasks.auto_archive_tasks",
-            "schedule": crontab(hour=3, minute=0),  # 3 AM UTC daily
+            "schedule": crontab(hour=3, minute=0),
         },
     },
 )
