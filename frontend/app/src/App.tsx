@@ -205,8 +205,19 @@ const SessionLoader: React.FC = () => (
 
 const AppContent: React.FC = () => {
   const { role, screen, mobile, params, drawerTaskId, modal, taskPrefill, tasks, tickets, currentUser, setTasks, setTickets, setDrawerTaskId, setModal, setTaskPrefill, openCreateTask, setScreen, setToast } = useAppStore();
+  const setMobile = useAppStore(s => s.setMobile);
   const { isChecking } = useSession();
   const isAuthenticated = currentUser !== null;
+
+  // Track viewport so the client portal can switch to its full-screen
+  // touch layout on phones. matchMedia avoids resize-event spam.
+  React.useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const apply = () => setMobile(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [setMobile]);
 
   // Fetch real data from backend once authenticated (no-op in mock mode)
   useBootstrap(isAuthenticated);

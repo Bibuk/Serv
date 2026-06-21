@@ -157,7 +157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteApp: (id) => set(s => ({ apps: s.apps.filter(a => a.id !== id) })),
   switchRole: (role) => {
     void get();
-    set({ role, screen: DEFAULT_SCREEN[role], drawerTaskId: null, modal: null, taskPrefill: null, mobile: false });
+    set({ role, screen: DEFAULT_SCREEN[role], drawerTaskId: null, modal: null, taskPrefill: null });
   },
   logout: () => set({ screen: 'login', drawerTaskId: null, modal: null, taskPrefill: null, params: {} }),
 }));

@@ -1144,17 +1144,21 @@ input, textarea, select { font-family: inherit; }
   gap: 24px;
 }
 .client-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 16px;
   font-weight: 700;
   color: var(--c-blue-700);
   letter-spacing: -0.3px;
   text-decoration: none;
+  flex-shrink: 0;
 }
 .client-header__brand-sub {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--c-gray-500);
-  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-gray-600);
+  letter-spacing: 0;
 }
 .client-header__nav {
   display: flex;
@@ -1278,6 +1282,124 @@ input, textarea, select { font-family: inherit; }
 }
 .mobile-status__time { font-size: 14px; font-weight: 700; }
 .mobile-status__icons { display: flex; gap: 5px; align-items: center; }
+
+/* ─── Client portal: full-screen mobile layout ───────── */
+.client-mobile {
+  display: flex;
+  flex-direction: column;
+  /* dvh tracks the real viewport as the browser chrome shows/hides */
+  height: 100dvh;
+  min-height: 100vh;
+  background: var(--bg-canvas);
+}
+.client-mobile__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  padding-top: calc(10px + env(safe-area-inset-top));
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.client-mobile__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  min-width: 0;
+}
+.client-mobile__brand-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-gray-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.client-mobile__bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.client-mobile__content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.client-mobile__tabbar {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
+  /* keep the bar above the home-indicator / gesture area */
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+}
+.client-mobile__tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 4px 7px;
+  border: none;
+  background: none;
+  color: var(--c-gray-400);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.client-mobile__tab:active { transform: scale(0.94); }
+.client-mobile__tab[data-active='true'] {
+  color: var(--c-blue-500);
+  font-weight: 600;
+}
+/* active indicator bar across the top of the selected tab */
+.client-mobile__tab[data-active='true']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--c-blue-500);
+}
+.client-mobile__tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  transition: background 0.12s, transform 0.12s;
+}
+.client-mobile__tab[data-active='true'] .client-mobile__tab-icon {
+  background: var(--c-blue-50);
+}
+/* the central "Создать" action reads as the primary CTA */
+.client-mobile__tab[data-accent='true'] .client-mobile__tab-icon {
+  background: var(--c-blue-500);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+.client-mobile__tab[data-accent='true'] { color: var(--c-blue-600); }
+.client-mobile__tab[data-accent='true'][data-active='true'] .client-mobile__tab-icon {
+  background: var(--c-blue-600);
+}
 
 /* ─── Login ───────────────────────────────────────── */
 .login-bg {
