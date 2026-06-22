@@ -36,5 +36,10 @@ export { getNotifications, markNotificationRead, markAllNotificationsRead } from
 export type { NotificationDto } from './notifications';
 export { NotificationSocket } from './realtime';
 export type { NotificationSocketHandlers } from './realtime';
+export { getAnalyticsDashboard } from './analytics';
+export type {
+  AnalyticsPeriod, DashboardData, StatusCount, PriorityCount,
+  WeeklyPoint, WorkerLoad, TeamLoad, OverdueRow,
+} from './analytics';
 export { getAuditLog } from './audit';
 export type { CreateTaskDto, UpdateTaskDto, CreateCommentDto, CreateTicketDto, TasksQuery, TicketsQuery, AuditQuery } from './dto';

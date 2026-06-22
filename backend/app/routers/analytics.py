@@ -7,7 +7,7 @@ from sqlalchemy import select, func, and_, text
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.task import Task, TaskStatus
-from app.models.ticket import Ticket
+from app.models.ticket import Ticket, TicketStatus
 from app.models.team import Team
 from app.models.subtask import Subtask
 from app.models.service import Service
@@ -27,8 +27,17 @@ from app.schemas.analytics import (
     TicketStatusCount,
     FrequentlyRejectedItem,
     FrequentlyRejectedOut,
+    DashboardOut,
+    DashWeekly,
+    DashWorkerLoad,
+    DashTeamLoad,
+    DashOverdue,
+    DashPriority,
 )
-from app.dependencies import require_teamlead
+from app.dependencies import require_teamlead, get_current_user
+
+_RU_MONTHS = ["янв", "фев", "мар", "апр", "май", "июн",
+              "июл", "авг", "сен", "окт", "ноя", "дек"]
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -443,3 +452,215 @@ async def weekly_stats(
         ))
 
     return WeeklyStatsOut(period_weeks=weeks, data=data)
+
+
+def _parse_days(period: str, default: int = 30) -> int:
+    if period.endswith("d"):
+        try:
+            return int(period[:-1])
+        except ValueError:
+            return default
+    return default
+
+
+@router.get("/dashboard", response_model=DashboardOut)
+async def dashboard(
+    period: str = Query("30d", description="e.g. 7d, 30d, 90d"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Single role-scoped payload for the analytics screen.
+
+    Teamlead → scoped to their own team; manager/admin → all teams.
+    """
+    if current_user.role not in (UserRole.teamlead, UserRole.manager, UserRole.admin):
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    days = _parse_days(period)
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=days)
+    non_terminal = [TaskStatus.draft, TaskStatus.assigned, TaskStatus.in_progress, TaskStatus.review]
+
+    is_teamlead = current_user.role == UserRole.teamlead
+    team_id = current_user.team_id if is_teamlead else None
+    scope = "team" if is_teamlead else "global"
+
+    team_name = None
+    if is_teamlead and team_id:
+        team_name = (await db.execute(select(Team.name).where(Team.id == team_id))).scalar_one_or_none()
+
+    def task_period_filters():
+        f = [Task.created_at >= start]
+        if team_id:
+            f.append(Task.team_id == team_id)
+        return f
+
+    # Totals (tasks created in period)
+    total_tasks = (await db.execute(
+        select(func.count(Task.id)).where(and_(*task_period_filters()))
+    )).scalar_one()
+    done = (await db.execute(
+        select(func.count(Task.id)).where(and_(*task_period_filters(), Task.status == TaskStatus.done))
+    )).scalar_one()
+    completion_rate = round(done / total_tasks * 100) if total_tasks else 0
+
+    # Status breakdown (period)
+    status_rows = (await db.execute(
+        select(Task.status, func.count(Task.id).label("count"))
+        .where(and_(*task_period_filters()))
+        .group_by(Task.status)
+    )).all()
+    by_status = [StatusCount(status=r.status.value, count=r.count) for r in status_rows]
+
+    # Completion metrics (tasks closed in period)
+    closed_filters = [Task.status == TaskStatus.done, Task.updated_at >= start]
+    if team_id:
+        closed_filters.append(Task.team_id == team_id)
+    done_rows = (await db.execute(
+        select(Task.created_at, Task.updated_at, Task.deadline).where(and_(*closed_filters))
+    )).all()
+    total_closed = len(done_rows)
+    if total_closed:
+        avg_days = sum((r.updated_at - r.created_at).total_seconds() for r in done_rows) / total_closed / 86400
+        on_time = sum(1 for r in done_rows if r.deadline and r.updated_at <= r.deadline)
+        on_time_percent = round(on_time / total_closed * 100, 1)
+    else:
+        avg_days = 0.0
+        on_time_percent = 0.0
+
+    # Overdue
+    overdue_filters = [Task.deadline < now, Task.status.in_(non_terminal)]
+    if team_id:
+        overdue_filters.append(Task.team_id == team_id)
+    overdue_count = (await db.execute(
+        select(func.count(Task.id)).where(and_(*overdue_filters))
+    )).scalar_one()
+    overdue_rows = (await db.execute(
+        select(Task, Team.name.label("team_name"))
+        .outerjoin(Team, Task.team_id == Team.id)
+        .where(and_(*overdue_filters))
+        .order_by(Task.deadline.asc())
+        .limit(50)
+    )).all()
+    overdue = [
+        DashOverdue(
+            id=row[0].id,
+            title=row[0].title,
+            team_name=row[1],
+            deadline=row[0].deadline.isoformat() if row[0].deadline else "",
+            priority=row[0].priority.value,
+        )
+        for row in overdue_rows
+    ]
+
+    # Tickets (scoped to team via linked tasks for teamlead)
+    ticket_scope = []
+    if team_id:
+        ticket_scope.append(
+            Ticket.task_id.in_(select(Task.id).where(Task.team_id == team_id))
+        )
+    active_tickets = (await db.execute(
+        select(func.count(Ticket.id)).where(
+            and_(Ticket.status.notin_([TicketStatus.closed, TicketStatus.rejected]), *ticket_scope)
+        )
+    )).scalar_one()
+    t_period = [Ticket.created_at >= start, *ticket_scope]
+    tickets_total = (await db.execute(
+        select(func.count(Ticket.id)).where(and_(*t_period))
+    )).scalar_one()
+    t_status_rows = (await db.execute(
+        select(Ticket.status, func.count(Ticket.id).label("count"))
+        .where(and_(*t_period)).group_by(Ticket.status)
+    )).all()
+    tickets_by_status = [StatusCount(status=r.status.value, count=r.count) for r in t_status_rows]
+    t_prio_rows = (await db.execute(
+        select(Ticket.priority, func.count(Ticket.id).label("count"))
+        .where(and_(*t_period)).group_by(Ticket.priority)
+    )).all()
+    tickets_by_priority = [DashPriority(priority=r.priority.value, count=r.count) for r in t_prio_rows]
+
+    # Weekly created vs closed
+    week_lit = text("'week'")
+    created_week = func.date_trunc(week_lit, Task.created_at)
+    closed_week = func.date_trunc(week_lit, Task.updated_at)
+    cw_filters = [Task.created_at >= start] + ([Task.team_id == team_id] if team_id else [])
+    clw_filters = [Task.status == TaskStatus.done, Task.updated_at >= start] + ([Task.team_id == team_id] if team_id else [])
+    created_rows = (await db.execute(
+        select(created_week.label("week"), func.count(Task.id).label("cnt"))
+        .where(and_(*cw_filters)).group_by(created_week)
+    )).all()
+    closed_rows = (await db.execute(
+        select(closed_week.label("week"), func.count(Task.id).label("cnt"))
+        .where(and_(*clw_filters)).group_by(closed_week)
+    )).all()
+    created_map = {str(r.week.date()): r.cnt for r in created_rows}
+    closed_map = {str(r.week.date()): r.cnt for r in closed_rows}
+    from datetime import date as _date
+    weekly = []
+    for w in sorted(set(created_map) | set(closed_map)):
+        d = _date.fromisoformat(w)
+        weekly.append(DashWeekly(
+            label=f"{d.day} {_RU_MONTHS[d.month - 1]}",
+            created=created_map.get(w, 0),
+            closed=closed_map.get(w, 0),
+        ))
+
+    # Team load (manager/admin) vs worker load (teamlead)
+    team_load: list[DashTeamLoad] = []
+    worker_load: list[DashWorkerLoad] = []
+    if is_teamlead and team_id:
+        members = (await db.execute(
+            select(User.id, User.full_name).where(User.team_id == team_id)
+        )).all()
+        counts = []
+        if members:
+            counts = (await db.execute(
+                select(Subtask.assignee_id, Subtask.status, func.count(Subtask.id).label("cnt"))
+                .where(Subtask.assignee_id.in_([m.id for m in members]))
+                .group_by(Subtask.assignee_id, Subtask.status)
+            )).all()
+        agg: dict = {}
+        for r in counts:
+            a = agg.setdefault(r.assignee_id, {"active": 0, "done": 0})
+            if r.status == "done":
+                a["done"] += r.cnt
+            else:
+                a["active"] += r.cnt
+        for m in members:
+            a = agg.get(m.id, {"active": 0, "done": 0})
+            worker_load.append(DashWorkerLoad(name=m.full_name, active=a["active"], done=a["done"]))
+        worker_load.sort(key=lambda w: w.active, reverse=True)
+    else:
+        teams = (await db.execute(select(Team))).scalars().all()
+        for team in teams:
+            active = (await db.execute(
+                select(func.count(Task.id)).where(
+                    and_(Task.team_id == team.id, Task.status.in_(non_terminal))
+                )
+            )).scalar_one()
+            members = (await db.execute(
+                select(func.count(User.id)).where(User.team_id == team.id)
+            )).scalar_one()
+            team_load.append(DashTeamLoad(team_name=team.name, active_tasks=active, member_count=members))
+
+    return DashboardOut(
+        scope=scope,
+        team_name=team_name,
+        period_days=days,
+        total_tasks=total_tasks,
+        done=done,
+        completion_rate=completion_rate,
+        avg_completion_days=round(avg_days, 1),
+        on_time_percent=on_time_percent,
+        overdue_count=overdue_count,
+        active_tickets=active_tickets,
+        by_status=by_status,
+        weekly=weekly,
+        team_load=team_load,
+        worker_load=worker_load,
+        tickets_total=tickets_total,
+        tickets_by_status=tickets_by_status,
+        tickets_by_priority=tickets_by_priority,
+        overdue=overdue,
+    )

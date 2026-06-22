@@ -92,3 +92,55 @@ class WeekPoint(BaseModel):
 class WeeklyStatsOut(BaseModel):
     period_weeks: int
     data: List[WeekPoint]
+
+
+class DashWeekly(BaseModel):
+    label: str
+    created: int
+    closed: int
+
+
+class DashWorkerLoad(BaseModel):
+    name: str
+    active: int
+    done: int
+
+
+class DashTeamLoad(BaseModel):
+    team_name: str
+    active_tasks: int
+    member_count: int
+
+
+class DashOverdue(BaseModel):
+    id: uuid.UUID
+    title: str
+    team_name: Optional[str] = None
+    deadline: str
+    priority: str
+
+
+class DashPriority(BaseModel):
+    priority: str
+    count: int
+
+
+class DashboardOut(BaseModel):
+    scope: str
+    team_name: Optional[str] = None
+    period_days: int
+    total_tasks: int
+    done: int
+    completion_rate: int
+    avg_completion_days: float
+    on_time_percent: float
+    overdue_count: int
+    active_tickets: int
+    by_status: List[StatusCount]
+    weekly: List[DashWeekly]
+    team_load: List[DashTeamLoad] = []
+    worker_load: List[DashWorkerLoad] = []
+    tickets_total: int = 0
+    tickets_by_status: List[StatusCount] = []
+    tickets_by_priority: List[DashPriority] = []
+    overdue: List[DashOverdue] = []
