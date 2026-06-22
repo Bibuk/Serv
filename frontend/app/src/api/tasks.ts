@@ -155,7 +155,8 @@ export async function getMySubtasks(workerId?: string): Promise<Subtask[]> {
     }));
     return out;
   }
-  const data = await apiClient.get<Paginated<unknown>>('/subtasks/?size=100');
+  const q = workerId ? `?assignee_id=${workerId}&size=100` : '?size=100';
+  const data = await apiClient.get<Paginated<unknown>>(`/subtasks/${q}`);
   return unwrap(data).map(mapSubtask as (s: unknown) => Subtask);
 }
 

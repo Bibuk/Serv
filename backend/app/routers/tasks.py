@@ -679,9 +679,12 @@ async def download_task_file(
 async def delete_task_file(
     task_id: uuid.UUID,
     file_id: uuid.UUID,
-    current_user: User = Depends(require_teamlead),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if current_user.role == UserRole.client:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
     result = await db.execute(
         select(FileAttachment).where(
             and_(FileAttachment.id == file_id, FileAttachment.task_id == task_id)

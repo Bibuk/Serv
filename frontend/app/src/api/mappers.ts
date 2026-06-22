@@ -161,6 +161,7 @@ interface RawTicketOut {
   application_id: string;
   application?: RawApplicationOut | null;
   task_id?: string | null;
+  reject_reason?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -299,6 +300,7 @@ export function mapTicket(t: RawTicketOut): Ticket {
     client: t.client?.full_name ?? t.client_id,
     taskId: t.task_id ?? null,
     comments: [],
+    rejectReason: t.reject_reason ?? undefined,
   };
 }
 

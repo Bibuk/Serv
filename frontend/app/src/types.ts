@@ -120,6 +120,7 @@ export interface Ticket {
   client: string;
   taskId: string | null;
   comments: Comment[];
+  rejectReason?: string;
 }
 
 export interface TaskPrefill {

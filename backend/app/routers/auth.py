@@ -49,7 +49,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 COOKIE_KWARGS = dict(
     httponly=True,
     samesite="lax",
-    secure=settings.APP_ENV == "production",
+    secure=settings.SECURE_COOKIES,
 )
 
 

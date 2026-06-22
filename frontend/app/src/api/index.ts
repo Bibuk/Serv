@@ -14,7 +14,9 @@ export type { CreateSubtaskDto, UpdateSubtaskDto, FileAttachment } from './tasks
 export {
   getTickets, getTicket, createTicket, addTicketComment, getTicketComments,
   updateTicketStatus, updateTicketPriority, rejectTicket, linkTaskToTicket,
+  getTicketFiles, uploadTicketFile, deleteTicketFile,
 } from './tickets';
+export type { TicketFile } from './tickets';
 export {
   getServices, createService, updateService, deleteService,
   getApplications, createApplication, updateApplication, setApplicationArchived,

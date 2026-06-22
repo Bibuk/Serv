@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   InboxOutlined, CheckCircleOutlined, SettingOutlined, CheckCircleFilled,
   CloseCircleOutlined, SearchOutlined, CheckOutlined, InfoCircleOutlined,
+  PaperClipOutlined, DeleteOutlined, DownloadOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Ticket, TicketStatus, Comment } from '../../types';
 import { AppTag } from '../../components';
 import { ruDate } from '../../utils/helpers';
 import { useAppStore } from '../../store/appStore';
-import { addTicketComment, getTicketComments } from '../../api';
+import { addTicketComment, getTicketComments, getTicketFiles, uploadTicketFile, deleteTicketFile } from '../../api';
+import type { TicketFile } from '../../api';
 
 const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('').slice(0, 2) || '?';
 const PALETTE = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0EA5E9'];
@@ -34,19 +36,19 @@ const STATUS_BANNER: Record<TicketStatus, { bg: string; color: string; icon: Rea
     label: 'Новый',
     desc: 'Ваша заявка получена и ожидает рассмотрения специалистом',
   },
-  accepted: {
-    bg: '#F0FDFA',
-    color: '#0D9488',
-    icon: <CheckCircleOutlined />,
-    label: 'Принята',
-    desc: 'Заявка принята в работу. Специалист изучает проблему',
-  },
   inprog: {
     bg: '#FFFBEB',
     color: '#D97706',
     icon: <SettingOutlined />,
+    label: 'В обработке',
+    desc: 'Специалист изучает вашу заявку и готовит решение',
+  },
+  accepted: {
+    bg: '#F0FDFA',
+    color: '#0D9488',
+    icon: <CheckCircleOutlined />,
     label: 'В работе',
-    desc: 'Специалисты работают над решением вашей проблемы',
+    desc: 'Заявка принята. Команда специалистов работает над решением',
   },
   closed: {
     bg: '#F0FDF4',
@@ -60,18 +62,18 @@ const STATUS_BANNER: Record<TicketStatus, { bg: string; color: string; icon: Rea
     color: '#DC2626',
     icon: <CloseCircleOutlined />,
     label: 'Отклонена',
-    desc: 'К сожалению, данная заявка была отклонена. Подробности в комментариях',
+    desc: 'К сожалению, данная заявка была отклонена.',
   },
 };
 
 const TIMELINE_STEPS: Array<{ status: TicketStatus; label: string }> = [
   { status: 'new', label: 'Создана' },
-  { status: 'accepted', label: 'Принята' },
-  { status: 'inprog', label: 'В работе' },
+  { status: 'inprog', label: 'В обработке' },
+  { status: 'accepted', label: 'В работе' },
   { status: 'closed', label: 'Закрыта' },
 ];
 
-const STATUS_ORDER: TicketStatus[] = ['new', 'accepted', 'inprog', 'closed'];
+const STATUS_ORDER: TicketStatus[] = ['new', 'inprog', 'accepted', 'closed'];
 
 const formatDatetime = (iso: string) => {
   const d = new Date(iso);
@@ -97,11 +99,13 @@ function relativeTime(iso: string): string {
 
 export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mobile }) => {
   const { setToast, currentUser } = useAppStore();
+  const qc = useQueryClient();
   const [commentText, setCommentText] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<Comment[]>([]);
   const [rating, setRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const ticket = tickets.find(t => t.id === ticketId);
 
   const commentsQ = useQuery({
@@ -109,6 +113,34 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
     queryFn: () => getTicketComments(ticketId!),
     enabled: !!ticketId,
   });
+
+  const filesQ = useQuery<TicketFile[]>({
+    queryKey: ['ticket-files', ticketId],
+    queryFn: () => getTicketFiles(ticketId!),
+    enabled: !!ticketId,
+  });
+
+  const uploadM = useMutation({
+    mutationFn: (file: File) => uploadTicketFile(ticketId!, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ticket-files', ticketId] }),
+    onError: (e: Error) => setToast({ kind: 'error', msg: e.message || 'Не удалось загрузить файл' }),
+  });
+
+  const deleteFileM = useMutation({
+    mutationFn: (fileId: string) => deleteTicketFile(ticketId!, fileId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ticket-files', ticketId] }),
+    onError: (e: Error) => setToast({ kind: 'error', msg: e.message || 'Не удалось удалить файл' }),
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadM.mutate(file);
+    e.target.value = '';
+  };
+
+  const formatBytes = (b: number) => b < 1024 * 1024
+    ? `${(b / 1024).toFixed(0)} КБ`
+    : `${(b / 1024 / 1024).toFixed(1)} МБ`;
 
   if (!ticket) {
     return (
@@ -185,6 +217,11 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
             {banner.label}
           </div>
           <div style={{ fontSize: 13, color: 'var(--c-gray-600)' }}>{banner.desc}</div>
+          {ticket.status === 'rejected' && ticket.rejectReason && (
+            <div style={{ marginTop: 6, fontSize: 13, color: '#DC2626', fontWeight: 500 }}>
+              Причина: {ticket.rejectReason}
+            </div>
+          )}
         </div>
       </div>
 
@@ -407,6 +444,59 @@ export const ClientTicketPage: React.FC<Props> = ({ ticketId, tickets, goto, mob
                   <div style={{ fontSize: 11, color: 'var(--c-gray-500)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>Задача</div>
                   <span className="mono" style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>{ticket.taskId}</span>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {}
+          <div className="card">
+            <div className="card__head">
+              <span className="card__title">Файлы</span>
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadM.isPending}
+                style={{ gap: 4 }}
+              >
+                <PaperClipOutlined style={{ fontSize: 13 }} />
+                {uploadM.isPending ? 'Загрузка…' : 'Прикрепить'}
+              </button>
+              <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChange} />
+            </div>
+            <div className="card__body" style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {filesQ.isLoading ? (
+                <div style={{ fontSize: 13, color: 'var(--c-gray-400)', padding: '8px 0' }}>Загрузка…</div>
+              ) : (filesQ.data ?? []).length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--c-gray-400)', padding: '8px 0' }}>Файлов нет</div>
+              ) : (
+                (filesQ.data ?? []).map(f => (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <PaperClipOutlined style={{ color: 'var(--c-gray-400)', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--c-gray-800)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.filename}</div>
+                      <div style={{ fontSize: 11, color: 'var(--c-gray-400)' }}>{formatBytes(f.sizeBytes)}</div>
+                    </div>
+                    <a
+                      href={`/api/tickets/${ticketId}/files/${f.id}/download`}
+                      download={f.filename}
+                      style={{ color: 'var(--c-blue-500)', flexShrink: 0 }}
+                      title="Скачать"
+                    >
+                      <DownloadOutlined style={{ fontSize: 14 }} />
+                    </a>
+                    {f.uploadedBy === currentUser?.id && (
+                      <button
+                        className="iconbtn"
+                        title="Удалить"
+                        disabled={deleteFileM.isPending}
+                        onClick={() => deleteFileM.mutate(f.id)}
+                        style={{ color: '#DC2626' }}
+                      >
+                        <DeleteOutlined style={{ fontSize: 13 }} />
+                      </button>
+                    )}
+                  </div>
+                ))
               )}
             </div>
           </div>

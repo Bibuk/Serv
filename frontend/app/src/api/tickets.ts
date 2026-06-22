@@ -130,3 +130,61 @@ export async function linkTaskToTicket(ticketId: string, taskId: string): Promis
   }
   return mapTicket(await apiClient.post(`/tickets/${ticketId}/link-task`, { task_id: taskId }));
 }
+
+interface RawTicketFile {
+  id: string;
+  ticket_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface TicketFile {
+  id: string;
+  ticketId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  createdAt: string;
+}
+
+function mapTicketFile(f: RawTicketFile): TicketFile {
+  return {
+    id: String(f.id),
+    ticketId: String(f.ticket_id),
+    filename: f.filename,
+    contentType: f.content_type,
+    sizeBytes: f.size_bytes,
+    uploadedBy: String(f.uploaded_by),
+    createdAt: f.created_at,
+  };
+}
+
+export async function getTicketFiles(ticketId: string): Promise<TicketFile[]> {
+  if (USE_MOCK) { await delay(100); return []; }
+  const data: RawTicketFile[] = await apiClient.get(`/tickets/${ticketId}/files`);
+  return data.map(mapTicketFile);
+}
+
+export async function uploadTicketFile(ticketId: string, file: File): Promise<TicketFile> {
+  if (USE_MOCK) {
+    await delay(400);
+    return { id: `tf-${Date.now()}`, ticketId, filename: file.name, contentType: file.type, sizeBytes: file.size, uploadedBy: '', createdAt: new Date().toISOString() };
+  }
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`/api/tickets/${ticketId}/files`, { method: 'POST', body: form, credentials: 'include' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || 'Не удалось загрузить файл');
+  }
+  return mapTicketFile(await res.json() as RawTicketFile);
+}
+
+export async function deleteTicketFile(ticketId: string, fileId: string): Promise<void> {
+  if (USE_MOCK) { await delay(200); return; }
+  await apiClient.delete(`/tickets/${ticketId}/files/${fileId}`);
+}

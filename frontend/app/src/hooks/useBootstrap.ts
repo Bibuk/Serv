@@ -36,8 +36,10 @@ export function useBootstrap(enabled: boolean) {
     const ticketsP = getTickets().then(t => setTickets(Array.isArray(t) ? t : [])).catch(console.error);
     getNotifications().then(applyNotifications).catch(console.error);
 
-    getServices().then(svcs => useAppStore.setState({ services: Array.isArray(svcs) ? svcs : [] })).catch(console.error);
-    getApplications().then(apps => useAppStore.setState({ apps: Array.isArray(apps) ? apps : [] })).catch(console.error);
+    Promise.all([
+      getServices().then(svcs => useAppStore.setState({ services: Array.isArray(svcs) ? svcs : [] })).catch(console.error),
+      getApplications().then(apps => useAppStore.setState({ apps: Array.isArray(apps) ? apps : [] })).catch(console.error),
+    ]).finally(() => useAppStore.getState().setCatalogReady(true));
     if (isAdmin) {
       getUsers().then(users => useAppStore.setState({ users: Array.isArray(users) ? users : [] })).catch(console.error);
     }

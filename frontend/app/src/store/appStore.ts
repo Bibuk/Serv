@@ -32,6 +32,8 @@ interface AppState {
   teams: string[];
   services: Service[];
   apps: App[];
+  catalogReady: boolean;
+  setCatalogReady: (v: boolean) => void;
   addUser: (user: User) => void;
   addTeam: (team: string) => void;
   updateService: (id: string, data: Partial<Service>) => void;
@@ -95,6 +97,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   teams: [],
   services: USE_MOCK ? SERVICES : [],
   apps: USE_MOCK ? APPS : [],
+  catalogReady: USE_MOCK,
+  setCatalogReady: (v) => set({ catalogReady: v }),
   setRole: (role) => set({ role }),
   setCurrentUser: (user) => set({ currentUser: user }),
   setScreen: (screen, params = {}) => set(s => ({

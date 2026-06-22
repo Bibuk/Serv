@@ -41,6 +41,7 @@ class TicketOut(BaseModel):
     application_id: uuid.UUID
     application: Optional[ApplicationOut] = None
     task_id: Optional[uuid.UUID] = None
+    reject_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

@@ -136,6 +136,9 @@ async def list_comments(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Clients can only view ticket comments",
             )
+        _ticket = (await db.execute(select(Ticket).where(Ticket.id == entity_id))).scalar_one_or_none()
+        if not _ticket or _ticket.client_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
         filters.append(Comment.is_visible_to_client == True)
 
     q = (
@@ -171,6 +174,11 @@ async def create_comment(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Clients can only comment on tickets",
             )
+        _ticket = (await db.execute(select(Ticket).where(Ticket.id == body.entity_id))).scalar_one_or_none()
+        if not _ticket:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+        if _ticket.client_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
         is_visible = True
     else:
         is_visible = body.is_visible_to_client

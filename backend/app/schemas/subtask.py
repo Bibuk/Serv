@@ -26,6 +26,7 @@ class FileAttachmentOut(BaseModel):
     id: uuid.UUID
     subtask_id: Optional[uuid.UUID] = None
     task_id: Optional[uuid.UUID] = None
+    ticket_id: Optional[uuid.UUID] = None
     filename: str
     content_type: str
     size_bytes: int

@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.application import Application
     from app.models.task import Task
+    from app.models.file_attachment import FileAttachment
 
 
 class TicketPriority(str, enum.Enum):
@@ -59,6 +60,7 @@ class Ticket(Base, UUIDMixin, TimestampMixin):
         ForeignKey("tasks.id", ondelete="SET NULL"),
         nullable=True,
     )
+    reject_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -81,4 +83,10 @@ class Ticket(Base, UUIDMixin, TimestampMixin):
         "Task",
         foreign_keys=[task_id],
         lazy="noload",
+    )
+    files: Mapped[list["FileAttachment"]] = relationship(
+        "FileAttachment",
+        back_populates="ticket",
+        lazy="noload",
+        cascade="all, delete-orphan",
     )

@@ -1,6 +1,6 @@
 import React from 'react';
 import { CloseOutlined } from '@ant-design/icons';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Ticket, TicketStatus, TaskPrefill, Priority } from '../../types';
 import { STATUSES } from '../../data/mock';
 import { matchesEntity } from '../../utils/catalog';
@@ -8,7 +8,7 @@ import { StatusPill, PriorityBadge, AppTag, ReasonModal } from '../../components
 import { ruDate } from '../../utils/helpers';
 import { SidebarIcon } from '../../shells';
 import { useAppStore } from '../../store/appStore';
-import { updateTicketStatus, updateTicketPriority, rejectTicket, getTicketComments, getServices, getApplications } from '../../api';
+import { updateTicketStatus, updateTicketPriority, rejectTicket, getTicketComments, addTicketComment, getServices, getApplications } from '../../api';
 import { clampPriority } from '../../utils/serviceMeta';
 import type { Service, App } from '../../types';
 
@@ -54,9 +54,11 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
   const [app, setApp] = React.useState('');
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [checked, setChecked] = React.useState<Set<string>>(new Set());
+  const [commentText, setCommentText] = React.useState('');
   const setToast = useAppStore(s => s.setToast);
   const setTickets = useAppStore(s => s.setTickets);
   const openCreateTask = useAppStore(s => s.openCreateTask);
+  const qc = useQueryClient();
 
   const servicesQ = useQuery({ queryKey: ['services'], queryFn: () => getServices() });
   const appsQ = useQuery({ queryKey: ['applications'], queryFn: () => getApplications() });
@@ -93,6 +95,17 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
   const priorityM = useMutation({
     mutationFn: ({ id, priority }: { id: string; priority: Priority }) => updateTicketPriority(id, priority),
     onSuccess: (updated) => { applyTicket(updated); setToast({ kind: 'success', msg: 'Приоритет обновлён' }); },
+    onError: (e: Error) => setToast({ kind: 'error', msg: e.message }),
+  });
+
+  const commentM = useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) =>
+      addTicketComment(id, { text, visibleToClient: true }),
+    onSuccess: () => {
+      setCommentText('');
+      qc.invalidateQueries({ queryKey: ['ticket-comments', selectedId] });
+      setToast({ kind: 'success', msg: 'Комментарий отправлен' });
+    },
     onError: (e: Error) => setToast({ kind: 'error', msg: e.message }),
   });
 
@@ -204,7 +217,7 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
             </thead>
             <tbody>
               {filtered.map(t => (
-                <tr key={t.id} className="table__row-link" onClick={() => setSelectedId(t.id)} style={{ cursor: 'pointer' }}>
+                <tr key={t.id} className="table__row-link" onClick={() => { setSelectedId(t.id); setCommentText(''); }} style={{ cursor: 'pointer' }}>
                   <td style={{ paddingLeft: 14 }} onClick={e => e.stopPropagation()}>
                     <input
                       type="checkbox"
@@ -324,9 +337,9 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                 {commentsQ.isLoading ? (
                   <div style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Загрузка…</div>
                 ) : (commentsQ.data ?? []).length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Комментариев нет</div>
+                  <div style={{ fontSize: 13, color: 'var(--c-gray-400)', marginBottom: 12 }}>Комментариев нет</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                     {(commentsQ.data ?? []).map((c, i) => {
                       const isUserId = (s: string) => !!s && !/\s/.test(s) && /^[a-z]\d+$/i.test(s);
                       const displayAuthor = isUserId(c.author) ? 'Специалист поддержки' : c.author;
@@ -343,6 +356,32 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                     })}
                   </div>
                 )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <textarea
+                    className="textarea"
+                    placeholder="Написать клиенту…"
+                    rows={3}
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (commentText.trim() && selectedId) commentM.mutate({ id: selectedId, text: commentText.trim() });
+                      }
+                    }}
+                    style={{ resize: 'vertical', fontSize: 13 }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, color: 'var(--c-gray-400)' }}>Enter — отправить · Shift+Enter — перенос</span>
+                    <button
+                      className="btn btn--primary btn--sm"
+                      disabled={commentM.isPending || !commentText.trim()}
+                      onClick={() => { if (commentText.trim() && selectedId) commentM.mutate({ id: selectedId, text: commentText.trim() }); }}
+                    >
+                      {commentM.isPending ? 'Отправка…' : 'Отправить'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

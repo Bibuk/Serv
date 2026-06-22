@@ -1,19 +1,23 @@
 import uuid
 import math
 from datetime import datetime, timezone
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.ticket import Ticket, TicketStatus, TicketPriority
 from app.models.task import Task
+from app.models.file_attachment import FileAttachment
 from app.models.audit_log import AuditLog, AuditEntityType
 from app.schemas.ticket import TicketOut, TicketCreate, TicketUpdate, TicketListOut, TicketReject, TicketLinkTask
+from app.schemas.subtask import FileAttachmentOut
 from app.dependencies import get_current_user
 from app.services.notification import create_notification
 from app.models.notification import NotificationEntityType
+from app.services.file_storage import save_file, delete_file, get_file_path
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -140,13 +144,6 @@ async def get_ticket(
     if current_user.role == UserRole.client and ticket.client_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    if current_user.role in (UserRole.manager, UserRole.admin) and ticket.status == TicketStatus.new:
-        ticket.status = TicketStatus.processing
-        ticket.updated_at = datetime.now(timezone.utc)
-        await db.flush()
-        await _log_audit(db, current_user.id, "ticket.viewed", ticket.id,
-                         {"old": "new", "new": "processing"})
-
     return TicketOut.model_validate(ticket)
 
 
@@ -201,6 +198,103 @@ async def update_ticket(
     return TicketOut.model_validate(ticket)
 
 
+async def _check_ticket_access(ticket_id: uuid.UUID, current_user: User, db: AsyncSession) -> Ticket:
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+    if current_user.role == UserRole.client and ticket.client_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if current_user.role in (UserRole.worker, UserRole.teamlead):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return ticket
+
+
+@router.post("/{ticket_id}/files", response_model=FileAttachmentOut, status_code=status.HTTP_201_CREATED)
+async def upload_ticket_file(
+    ticket_id: uuid.UUID,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ticket = await _check_ticket_access(ticket_id, current_user, db)
+    file_id, filename, content_type, size_bytes, path = await save_file(f"ticket/{ticket_id}", file)
+    attachment = FileAttachment(
+        id=file_id,
+        ticket_id=ticket_id,
+        filename=filename,
+        content_type=content_type,
+        size_bytes=size_bytes,
+        path=path,
+        uploaded_by=current_user.id,
+    )
+    db.add(attachment)
+    await db.flush()
+    await _log_audit(db, current_user.id, "file.uploaded", ticket.id,
+                     {"file_id": str(file_id), "filename": filename})
+    return FileAttachmentOut.model_validate(attachment)
+
+
+@router.get("/{ticket_id}/files", response_model=List[FileAttachmentOut])
+async def list_ticket_files(
+    ticket_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _check_ticket_access(ticket_id, current_user, db)
+    files_result = await db.execute(
+        select(FileAttachment)
+        .where(FileAttachment.ticket_id == ticket_id)
+        .order_by(FileAttachment.created_at.desc())
+    )
+    return [FileAttachmentOut.model_validate(f) for f in files_result.scalars().all()]
+
+
+@router.get("/{ticket_id}/files/{file_id}/download")
+async def download_ticket_file(
+    ticket_id: uuid.UUID,
+    file_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _check_ticket_access(ticket_id, current_user, db)
+    result = await db.execute(
+        select(FileAttachment).where(
+            and_(FileAttachment.id == file_id, FileAttachment.ticket_id == ticket_id)
+        )
+    )
+    attachment = result.scalar_one_or_none()
+    if not attachment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    path = get_file_path(attachment.path)
+    return FileResponse(path, media_type=attachment.content_type, filename=attachment.filename)
+
+
+@router.delete("/{ticket_id}/files/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_ticket_file(
+    ticket_id: uuid.UUID,
+    file_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _check_ticket_access(ticket_id, current_user, db)
+    result = await db.execute(
+        select(FileAttachment).where(
+            and_(FileAttachment.id == file_id, FileAttachment.ticket_id == ticket_id)
+        )
+    )
+    attachment = result.scalar_one_or_none()
+    if not attachment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    if current_user.role == UserRole.client and attachment.uploaded_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Can only delete your own files")
+    await _log_audit(db, current_user.id, "file.deleted", ticket_id,
+                     {"file_id": str(file_id), "filename": attachment.filename})
+    await delete_file(attachment.path)
+    await db.delete(attachment)
+    await db.flush()
+
+
 @router.post("/{ticket_id}/reject", response_model=TicketOut)
 async def reject_ticket(
     ticket_id: uuid.UUID,
@@ -221,6 +315,7 @@ async def reject_ticket(
 
     old_status = ticket.status
     ticket.status = TicketStatus.rejected
+    ticket.reject_reason = body.reason
     ticket.updated_at = datetime.now(timezone.utc)
     await db.flush()
 

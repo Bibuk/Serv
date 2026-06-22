@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
+    SECURE_COOKIES: bool = False
 
     @property
     def is_production(self) -> bool:

@@ -9,6 +9,7 @@ from app.models.base import UUIDMixin, TimestampMixin
 if TYPE_CHECKING:
     from app.models.subtask import Subtask
     from app.models.task import Task
+    from app.models.ticket import Ticket
     from app.models.user import User
 
 
@@ -24,6 +25,12 @@ class FileAttachment(Base, UUIDMixin, TimestampMixin):
     task_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    ticket_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tickets.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
@@ -47,6 +54,11 @@ class FileAttachment(Base, UUIDMixin, TimestampMixin):
         back_populates="files",
         lazy="noload",
     )
+    ticket: Mapped[Optional["Ticket"]] = relationship(
+        "Ticket",
+        back_populates="files",
+        lazy="noload",
+    )
     uploader: Mapped["User"] = relationship(
         "User",
         foreign_keys=[uploaded_by],
@@ -55,7 +67,7 @@ class FileAttachment(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         CheckConstraint(
-            "(subtask_id IS NOT NULL) OR (task_id IS NOT NULL)",
+            "(subtask_id IS NOT NULL) OR (task_id IS NOT NULL) OR (ticket_id IS NOT NULL)",
             name="ck_file_attachment_owner",
         ),
     )

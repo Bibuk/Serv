@@ -89,11 +89,12 @@ interface Props {
 }
 
 export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) => {
-  const addTicket   = useAppStore(s => s.addTicket);
-  const tickets     = useAppStore(s => s.tickets);
-  const currentUser = useAppStore(s => s.currentUser);
-  const services    = useAppStore(s => s.services);
-  const apps        = useAppStore(s => s.apps);
+  const addTicket    = useAppStore(s => s.addTicket);
+  const tickets      = useAppStore(s => s.tickets);
+  const currentUser  = useAppStore(s => s.currentUser);
+  const services     = useAppStore(s => s.services);
+  const apps         = useAppStore(s => s.apps);
+  const catalogReady = useAppStore(s => s.catalogReady);
 
   const [categoryId,    setCategoryId]    = useState('');
   const [appId,         setAppId]         = useState('');
@@ -125,6 +126,19 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     } catch {
     }
   }, []);
+
+  useEffect(() => {
+    if (!categoryId && !appId && !branch && !title && !desc && !priority && !affectedUsers) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        categoryId, appId, branch, title, desc,
+        priority: priority ?? '',
+        affectedUsers,
+        savedAt: new Date().toISOString(),
+      }));
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [categoryId, appId, branch, title, desc, priority, affectedUsers]);
 
 
   const activeServices = useMemo(() => services.filter(s => s.status !== 'archived'), [services]);
@@ -559,6 +573,25 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     </div>
   );
 
+  if (!catalogReady) {
+    return (
+      <div style={{ padding: mobile ? 16 : '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <button
+          onClick={() => goto('tickets')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#2563EB', fontWeight: 500, padding: 0, display: 'flex', alignItems: 'center', gap: 4, alignSelf: 'flex-start' }}
+        >
+          ← Назад
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', flexDirection: 'column', gap: 12 }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span style={{ fontSize: 14, color: 'var(--c-gray-500)' }}>Загрузка каталога сервисов…</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: mobile ? 16 : '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
