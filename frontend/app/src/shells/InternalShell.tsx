@@ -102,7 +102,7 @@ export const InternalShell: React.FC<InternalShellProps> = ({
     tasks: tasks.filter(t => !['done', 'archive'].includes(t.status)).length,
     tickets: tickets.filter(t => ['new', 'accepted'].includes(t.status)).length,
     'team-dashboard': tasks.filter(t => !['done', 'archive'].includes(t.status) && (!myTeam || t.team === myTeam)).length,
-    'my-tasks': tasks.filter(t => !['done', 'archive'].includes(t.status)).length,
+    'my-tasks': tasks.filter(t => !['done', 'archive'].includes(t.status) && t.subtasks.some(s => s.worker === userId)).length,
     notifications: notifications.filter(n => !n.read).length,
     users: 0,
   };

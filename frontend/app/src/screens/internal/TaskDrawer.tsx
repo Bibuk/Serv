@@ -59,6 +59,7 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
 
   const setToast = useAppStore(s => s.setToast);
   const role = useAppStore(s => s.role);
+  const currentUser = useAppStore(s => s.currentUser);
 
   const detailQ = useQuery({ queryKey: ['task', taskId], queryFn: () => getTask(taskId), retry: false });
   const commentsQ = useQuery({ queryKey: ['task-comments', taskId], queryFn: () => getTaskComments(taskId) });
@@ -158,9 +159,14 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
 
   if (!task) return null;
 
-  const subtasks = task.subtasks ?? [];
+  const allSubtasks = task.subtasks ?? [];
+  // Workers only see the subtasks assigned to them; other roles see everything.
+  const subtasks = role === 'worker'
+    ? allSubtasks.filter(s => s.worker === currentUser?.id)
+    : allSubtasks;
   const doneSubs = subtasks.filter(s => s.status === 'done').length;
   const totalSubs = subtasks.length;
+  const totalAllSubs = allSubtasks.length;
   const pct = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
 
   const startEdit = () => { setEditTitle(task.title); setEditDesc(task.desc); setEditPriority(task.priority); setEditDeadline(task.deadline ?? ''); setEditing(true); };
@@ -346,10 +352,12 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
                 {detailQ.isLoading && <div style={{ textAlign: 'center', padding: 20, color: 'var(--c-gray-400)', fontSize: 13 }}>Загрузка…</div>}
                 {subtasks.map(sub => {
                   const isDone = sub.status === 'done';
+                  const isMySubtask = role === 'worker' && sub.worker === currentUser?.id;
+                  const canToggle = canManage || isMySubtask;
                   return (
                     <div key={sub.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: isDone ? 'var(--c-gray-50)' : '#fff' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <input type="checkbox" checked={isDone} disabled={!canManage || subtaskM.isPending} onChange={() => subtaskM.mutate({ id: sub.id, done: !isDone, prevStatus: sub.status })} style={{ cursor: canManage ? 'pointer' : 'default', width: 16, height: 16, flexShrink: 0 }} />
+                        <input type="checkbox" checked={isDone} disabled={!canToggle || subtaskM.isPending} onChange={() => subtaskM.mutate({ id: sub.id, done: !isDone, prevStatus: sub.status })} style={{ cursor: canToggle ? 'pointer' : 'default', width: 16, height: 16, flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 13, color: isDone ? 'var(--c-gray-400)' : 'var(--c-gray-800)', textDecoration: isDone ? 'line-through' : 'none' }}>{sub.title}</span>
                         {sub.workerName && <span style={{ fontSize: 11, color: 'var(--c-gray-500)' }}>{sub.workerName.split(' ')[0]}</span>}
                         {sub.deadline && <Deadline date={sub.deadline} compact />}
@@ -359,8 +367,11 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
                     </div>
                   );
                 })}
-                {!detailQ.isLoading && totalSubs === 0 && (
+                {!detailQ.isLoading && totalSubs === 0 && totalAllSubs === 0 && (
                   <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--c-gray-400)', fontSize: 13 }}>Нет подзадач</div>
+                )}
+                {!detailQ.isLoading && role === 'worker' && totalSubs === 0 && totalAllSubs > 0 && (
+                  <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--c-gray-400)', fontSize: 13 }}>У вас нет подзадач в этой задаче</div>
                 )}
               </div>
             </div>

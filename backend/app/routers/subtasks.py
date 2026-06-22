@@ -140,20 +140,8 @@ async def update_subtask(
     if current_user.role == UserRole.worker:
         if subtask.assignee_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your subtask")
-        # A worker drives their subtask through todo / in_progress / blocked,
-        # but confirming completion ("done") is reserved for the teamlead.
-        if subtask.status == SubtaskStatus.done:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Подзадача уже завершена. Переоткрыть её может только тимлид.",
-            )
         update_data = {}
         if body.status is not None:
-            if body.status == SubtaskStatus.done:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Отметить подзадачу выполненной может только тимлид.",
-                )
             update_data["status"] = body.status
     else:
         update_data = body.model_dump(exclude_unset=True)
