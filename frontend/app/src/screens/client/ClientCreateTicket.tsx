@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CloseOutlined } from '@ant-design/icons';
 import { useAppStore } from '../../store/appStore';
-import { createTicket } from '../../api';
+import { createTicket, uploadTicketFile } from '../../api';
 import type { Priority } from '../../types';
 
 
@@ -103,7 +103,7 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
   const [desc,          setDesc]          = useState('');
   const [priority,      setPriority]      = useState<Priority | ''>('');
   const [affectedUsers, setAffectedUsers] = useState('');
-  const [fileNames,     setFileNames]     = useState<string[]>([]);
+  const [files,         setFiles]         = useState<File[]>([]);
   const [fieldErrors,   setFieldErrors]   = useState<Record<string, string>>({});
   const [apiError,      setApiError]      = useState<string | null>(null);
   const [submitting,    setSubmitting]    = useState(false);
@@ -237,15 +237,15 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    setFileNames(prev => [...prev, ...Array.from(e.target.files!).map(f => f.name)]);
+    setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
   };
 
   const handleFileDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
-    setFileNames(prev => [...prev, ...Array.from(e.dataTransfer.files).map(f => f.name)]);
+    setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
   };
 
-  const removeFile = (index: number) => setFileNames(prev => prev.filter((_, i) => i !== index));
+  const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
@@ -278,12 +278,18 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     setApiError(null);
     try {
       const ticket = await createTicket({
-        title:       title.trim(),
-        desc:        desc.trim(),
+        title:    title.trim(),
+        desc:     desc.trim(),
         appId,
-        priority:    priority as Priority,
-        attachments: fileNames,
+        priority: priority as Priority,
       });
+      if (files.length > 0) {
+        const results = await Promise.allSettled(files.map(f => uploadTicketFile(ticket.id, f)));
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed > 0) {
+          setApiError(`Заявка создана, но ${failed} из ${files.length} файлов не загрузились. Их можно добавить на странице заявки.`);
+        }
+      }
       addTicket(ticket);
       localStorage.removeItem(DRAFT_KEY);
       onSubmit({ title, desc, appId, priority: priority ?? '', branch, affectedUsers });
@@ -506,16 +512,16 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
             <span style={{ fontSize: 11 }}>PNG, JPG, PDF, ZIP — до 20 МБ</span>
             <input id="file-upload" type="file" multiple onChange={handleFileChange} style={{ display: 'none' }} />
           </label>
-          {fileNames.length > 0 && (
+          {files.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-              {fileNames.map((name, i) => (
+              {files.map((file, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '6px 10px', background: 'var(--c-gray-50, #F9FAFB)',
                   border: '1px solid var(--border-subtle)', borderRadius: 6,
                   fontSize: 13, color: 'var(--c-gray-700)',
                 }}>
-                  <span>📄 {name}</span>
+                  <span>📄 {file.name}</span>
                   <button type="button" onClick={() => removeFile(i)} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     fontSize: 12, color: 'var(--c-gray-400)', padding: '0 2px', lineHeight: 1,

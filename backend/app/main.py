@@ -49,6 +49,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
+_BROADCAST_PATHS = ("/api/tasks", "/api/tickets", "/api/subtasks", "/api/comments")
+
+
+@app.middleware("http")
+async def broadcast_data_changes(request: Request, call_next):
+    """After any successful mutation of shared data, notify every connected
+    client to refresh — gives all roles real-time updates, not just whoever
+    received a personal notification."""
+    response = await call_next(request)
+    try:
+        path = request.url.path
+        if (
+            request.method in _MUTATING_METHODS
+            and response.status_code < 400
+            and any(path.startswith(p) for p in _BROADCAST_PATHS)
+        ):
+            parts = path.split("/")
+            entity = parts[2] if len(parts) > 2 else "data"
+            from app.services.notification import ws_manager
+            await ws_manager.broadcast({"type": "data_change", "entity": entity})
+    except Exception:
+        pass
+    return response
+
 from app.routers import (
     auth,
     users,

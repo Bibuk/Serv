@@ -64,6 +64,10 @@ export function useBootstrap(enabled: boolean) {
         qc.invalidateQueries({ queryKey: ['ticket-comments'] });
         qc.invalidateQueries({ queryKey: ['task-comments'] });
         qc.invalidateQueries({ queryKey: ['task'] });
+        qc.invalidateQueries({ queryKey: ['my-subtasks'] });
+        qc.invalidateQueries({ queryKey: ['ticket-files'] });
+        qc.invalidateQueries({ queryKey: ['attachments'] });
+        qc.invalidateQueries({ queryKey: ['analytics-dashboard'] });
       }, 300);
     };
 
@@ -73,6 +77,7 @@ export function useBootstrap(enabled: boolean) {
         if (!item.read) setToast({ kind: 'info', msg: item.title });
         scheduleRefresh();
       },
+      onDataChange: () => scheduleRefresh(),
     });
     socket.start();
     return () => { if (refreshTimer) clearTimeout(refreshTimer); socket.close(); };

@@ -20,6 +20,7 @@ class TicketPriority(str, enum.Enum):
     low = "low"
     medium = "medium"
     high = "high"
+    critical = "critical"
 
 
 class TicketStatus(str, enum.Enum):

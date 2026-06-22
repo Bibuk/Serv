@@ -202,7 +202,7 @@ export const AnalyticsScreen: React.FC = () => {
 
       {d && (
         <>
-          <div className="stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+          <div className="stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
             <Stat label="Всего задач" value={d.totalTasks} icon={<ProfileOutlined />} iconBg="#EFF6FF" iconColor="#2563EB" />
             <Stat label="Выполнено" value={d.done} icon={<CheckCircleOutlined />} iconBg="#ECFDF5" iconColor="#059669" />
             <Stat label="Выполнение" value={`${d.completionRate}%`} icon={<RiseOutlined />} iconBg="#F5F3FF" iconColor="#7C3AED" />
@@ -218,12 +218,12 @@ export const AnalyticsScreen: React.FC = () => {
             </div>
           </Card>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
             <Card title="Задачи по статусам">
               {statusSlices.length === 0 ? (
                 <span style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Нет задач за период</span>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
                   <Donut slices={statusSlices.map(s => ({ v: s.count, color: s.color, label: s.label }))} value={d.totalTasks} label="задач" />
                   <div style={{ flex: 1, minWidth: 0 }}><Legend items={statusSlices} /></div>
                 </div>
@@ -288,7 +288,7 @@ export const AnalyticsScreen: React.FC = () => {
               {ticketSlices.length === 0 ? (
                 <span style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Нет заявок за период</span>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
                   <Donut slices={ticketSlices.map(s => ({ v: s.count, color: s.color, label: s.label }))} value={d.ticketsTotal} label="заявок" />
                   <div style={{ flex: 1, minWidth: 0 }}><Legend items={ticketSlices} /></div>
                 </div>
@@ -305,8 +305,8 @@ export const AnalyticsScreen: React.FC = () => {
                 background: 'var(--c-error-light)', color: 'var(--c-error)',
               }}>{d.overdueCount}</span>
             </div>
-            <div className="card__body card__body--flush">
-              <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="card__body card__body--flush" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="table" style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     {['Название', 'Команда', 'Дедлайн', 'Приоритет'].map(h => (

@@ -1,5 +1,5 @@
 import type { Priority } from '../types';
 
 export function clampPriority(p?: Priority): Priority {
-  return p === 'critical' ? 'high' : (p ?? 'medium');
+  return p ?? 'medium';
 }

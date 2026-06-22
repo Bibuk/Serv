@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Ticket, TicketStatus, TaskPrefill, Priority } from '../../types';
 import { STATUSES } from '../../data/mock';
 import { matchesEntity } from '../../utils/catalog';
-import { StatusPill, PriorityBadge, AppTag, ReasonModal } from '../../components';
+import { StatusPill, PriorityBadge, AppTag, ReasonModal, Attachments } from '../../components';
 import { ruDate } from '../../utils/helpers';
 import { SidebarIcon } from '../../shells';
 import { useAppStore } from '../../store/appStore';
@@ -330,6 +330,12 @@ export const ManagerTicketsScreen: React.FC<Props> = ({ tickets }) => {
                   </div>
                 </div>
               )}
+
+              {}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-gray-500)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' }}>Файлы заявки</div>
+                <Attachments kind="ticket" id={selectedTicket.id} canDelete={false} canUpload />
+              </div>
 
               {}
               <div>

@@ -24,9 +24,10 @@ interface FormState {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'high',   label: 'Высокий' },
-  { value: 'medium', label: 'Средний' },
-  { value: 'low',    label: 'Низкий' },
+  { value: 'critical', label: 'Критичный' },
+  { value: 'high',     label: 'Высокий' },
+  { value: 'medium',   label: 'Средний' },
+  { value: 'low',      label: 'Низкий' },
 ];
 
 export const TaskCreateModal: React.FC<Props> = ({ onClose, onSubmit, prefill }) => {

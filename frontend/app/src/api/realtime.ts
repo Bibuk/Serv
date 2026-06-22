@@ -15,11 +15,16 @@ interface NotificationFrame {
 }
 
 interface ConnectedFrame { type: 'connected'; user_id: string; message: string }
+interface DataChangeFrame { type: 'data_change'; entity: string }
 
-type ServerFrame = NotificationFrame | ConnectedFrame | { type: string };
+type ServerFrame = NotificationFrame | ConnectedFrame | DataChangeFrame | { type: string };
 
 function isNotificationFrame(f: ServerFrame): f is NotificationFrame {
   return f.type === 'notification';
+}
+
+function isDataChangeFrame(f: ServerFrame): f is DataChangeFrame {
+  return f.type === 'data_change';
 }
 
 function toItem(f: NotificationFrame): NotificationItem {
@@ -45,6 +50,7 @@ const RECONNECT_MAX_MS = 30_000;
 
 export interface NotificationSocketHandlers {
   onNotification: (item: NotificationItem) => void;
+  onDataChange?: (entity: string) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
 }
@@ -95,6 +101,8 @@ export class NotificationSocket {
       }
       if (isNotificationFrame(frame)) {
         this.handlers.onNotification(toItem(frame));
+      } else if (isDataChangeFrame(frame)) {
+        this.handlers.onDataChange?.(frame.entity);
       }
     };
 

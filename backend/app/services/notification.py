@@ -46,6 +46,19 @@ class WebSocketManager:
             except ValueError:
                 pass
 
+    async def broadcast(self, data: dict) -> None:
+        """Send a frame to every connected socket (all users)."""
+        message = json.dumps(data, default=str)
+        for user_id, connections in list(self._connections.items()):
+            for ws in list(connections):
+                try:
+                    await ws.send_text(message)
+                except Exception:
+                    try:
+                        self._connections[user_id].remove(ws)
+                    except (ValueError, KeyError):
+                        pass
+
     def is_connected(self, user_id: str) -> bool:
         return bool(self._connections.get(user_id))
 
