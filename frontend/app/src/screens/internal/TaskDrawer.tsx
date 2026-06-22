@@ -46,9 +46,9 @@ const TASK_STATUSES: TaskStatus[] = ['draft', 'assigned', 'inprog', 'review', 'd
 
 export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }) => {
   const qc = useQueryClient();
-  const [tab, setTab] = React.useState<'subtasks' | 'comments' | 'files'>('subtasks');
+  const [tab, setTab] = React.useState<'subtasks' | 'comments' | 'client' | 'files'>('subtasks');
   const [commentText, setCommentText] = React.useState('');
-  const [visibleToClient, setVisibleToClient] = React.useState(false);
+  const [clientText, setClientText] = React.useState('');
   const [editing, setEditing] = React.useState(false);
   const [editTitle, setEditTitle] = React.useState('');
   const [editDesc, setEditDesc] = React.useState('');
@@ -98,8 +98,18 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
   });
 
   const commentM = useMutation({
-    mutationFn: () => apiAddTaskComment(taskId, { text: commentText.trim(), visibleToClient }),
+    mutationFn: () => apiAddTaskComment(taskId, { text: commentText.trim(), visibleToClient: false }),
     onSuccess: () => { setCommentText(''); qc.invalidateQueries({ queryKey: ['task-comments', taskId] }); },
+    onError: (e: Error) => setToast({ kind: 'error', msg: e.message }),
+  });
+
+  const clientM = useMutation({
+    mutationFn: () => apiAddTaskComment(taskId, { text: clientText.trim(), visibleToClient: true }),
+    onSuccess: () => {
+      setClientText('');
+      qc.invalidateQueries({ queryKey: ['task-comments', taskId] });
+      setToast({ kind: 'success', msg: 'Сообщение отправлено клиенту' });
+    },
     onError: (e: Error) => setToast({ kind: 'error', msg: e.message }),
   });
 
@@ -154,8 +164,11 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
   const pct = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
 
   const startEdit = () => { setEditTitle(task.title); setEditDesc(task.desc); setEditPriority(task.priority); setEditDeadline(task.deadline ?? ''); setEditing(true); };
-  const comments = commentsQ.data ?? [];
+  const allComments = commentsQ.data ?? [];
+  const comments = allComments.filter(c => !c.visibleToClient);
+  const clientComments = allComments.filter(c => c.visibleToClient);
   const canManage = role === 'manager' || role === 'admin';
+  const clientLinked = !!task.ticket;
 
   return (
     <div className="drawer-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -304,6 +317,9 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
             <button className={`tabs__item${tab === 'comments' ? ' active' : ''}`} onClick={() => setTab('comments')}>
               Комментарии {comments.length > 0 && <span style={{ marginLeft: 4, fontSize: 11, background: 'var(--c-gray-200)', borderRadius: 999, padding: '0 6px' }}>{comments.length}</span>}
             </button>
+            <button className={`tabs__item${tab === 'client' ? ' active' : ''}`} onClick={() => setTab('client')}>
+              Связь с клиентом {clientComments.length > 0 && <span style={{ marginLeft: 4, fontSize: 11, background: '#DBEAFE', color: '#1D4ED8', borderRadius: 999, padding: '0 6px' }}>{clientComments.length}</span>}
+            </button>
             <button className={`tabs__item${tab === 'files' ? ' active' : ''}`} onClick={() => setTab('files')}>
               Файлы
             </button>
@@ -353,6 +369,9 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
           {}
           {tab === 'comments' && (
             <div>
+              <div style={{ fontSize: 12, color: 'var(--c-gray-400)', marginBottom: 14 }}>
+                Внутренние комментарии команды — клиент их не видит.
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
                 {comments.map((c, i) => (
                   <div key={c.id ?? i} style={{ display: 'flex', gap: 10 }}>
@@ -361,7 +380,6 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-gray-800)' }}>{c.author}</span>
                         <span style={{ fontSize: 11, color: 'var(--c-gray-400)' }}>{relativeTime(c.date)}</span>
-                        {c.visibleToClient && <span style={{ fontSize: 10, fontWeight: 600, background: 'var(--c-info-light)', color: 'var(--c-info)', padding: '1px 6px', borderRadius: 999 }}>видно клиенту</span>}
                       </div>
                       <p style={{ fontSize: 13, color: 'var(--c-gray-700)', lineHeight: 1.6, margin: 0, background: 'var(--c-gray-50)', borderRadius: 8, padding: '8px 12px', border: '1px solid var(--border-subtle)' }}>{c.text}</p>
                     </div>
@@ -375,16 +393,63 @@ export const TaskDrawer: React.FC<Props> = ({ taskId, onClose, tasks, setTasks }
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <textarea className="textarea" placeholder="Написать комментарий..." value={commentText} onChange={e => setCommentText(e.target.value)} rows={3} />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--c-gray-600)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={visibleToClient} onChange={e => setVisibleToClient(e.target.checked)} />
-                    Видно клиенту
-                  </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <button className="btn btn--primary btn--sm" onClick={() => commentM.mutate()} disabled={commentM.isPending || !commentText.trim()}>
                     <SidebarIcon name="send" size={13} /> Отправить
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {}
+          {tab === 'client' && (
+            <div>
+              {!clientLinked ? (
+                <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--c-gray-400)', fontSize: 13 }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🔗</div>
+                  Задача не связана с заявкой клиента
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--c-gray-400)', marginBottom: 14 }}>
+                    Переписка с клиентом по заявке. Сообщения и файлы здесь видны клиенту.
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+                    {clientComments.map((c, i) => (
+                      <div key={c.id ?? i} style={{ display: 'flex', gap: 10 }}>
+                        <Avatar name={c.author} size={24} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-gray-800)' }}>{c.author}</span>
+                            <span style={{ fontSize: 11, color: 'var(--c-gray-400)' }}>{relativeTime(c.date)}</span>
+                          </div>
+                          <p style={{ fontSize: 13, color: 'var(--c-gray-700)', lineHeight: 1.6, margin: 0, background: '#EFF6FF', borderRadius: 8, padding: '8px 12px', border: '1px solid #BFDBFE' }}>{c.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {!commentsQ.isLoading && clientComments.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--c-gray-400)', fontSize: 13 }}>
+                        <div style={{ fontSize: 24, marginBottom: 8 }}>💬</div>Сообщений клиенту пока нет
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <textarea className="textarea" placeholder="Написать клиенту..." value={clientText} onChange={e => setClientText(e.target.value)} rows={3} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <button className="btn btn--primary btn--sm" onClick={() => clientM.mutate()} disabled={clientM.isPending || !clientText.trim()}>
+                        <SidebarIcon name="send" size={13} /> Отправить клиенту
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 20, paddingTop: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-gray-500)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                      Файлы для клиента
+                    </div>
+                    <Attachments kind="ticket" id={task.ticket!} canDelete={canManage} />
+                  </div>
+                </>
+              )}
             </div>
           )}
 

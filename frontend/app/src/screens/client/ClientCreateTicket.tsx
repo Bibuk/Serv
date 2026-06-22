@@ -109,6 +109,8 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
   const [submitting,    setSubmitting]    = useState(false);
   const [draftNotice,   setDraftNotice]   = useState(false);
   const [draftSaved,    setDraftSaved]    = useState(false);
+  const [branchPickerOpen, setBranchPickerOpen] = useState(false);
+  const [branchSearch,     setBranchSearch]     = useState('');
 
   useEffect(() => {
     const raw = localStorage.getItem(DRAFT_KEY);
@@ -140,6 +142,26 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
     return () => clearTimeout(timer);
   }, [categoryId, appId, branch, title, desc, priority, affectedUsers]);
 
+
+  const filteredBranches = useMemo(() => {
+    const q = branchSearch.trim().toLowerCase();
+    if (!q) return BRANCHES;
+    return BRANCHES.filter(b => b.toLowerCase().includes(q));
+  }, [branchSearch]);
+
+  useEffect(() => {
+    if (!branchPickerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [branchPickerOpen]);
+
+  const selectBranch = (b: string) => {
+    setBranch(b);
+    setFieldErrors(p => ({ ...p, branch: '' }));
+    setBranchPickerOpen(false);
+    setBranchSearch('');
+  };
 
   const activeServices = useMemo(() => services.filter(s => s.status !== 'archived'), [services]);
   const activeApps     = useMemo(() => apps.filter(a => a.status === 'active'),       [apps]);
@@ -372,17 +394,39 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
         {}
         <div style={fieldWrap}>
           <label style={labelCss}>Склад / филиал <span style={{ color: '#DC2626' }}>*</span></label>
-          <input
-            type="text"
-            list="branch-options"
-            placeholder="Начните вводить название..."
-            value={branch}
-            onChange={e => { setBranch(e.target.value); setFieldErrors(p => ({ ...p, branch: '' })); }}
-            style={inputCss}
-          />
-          <datalist id="branch-options">
-            {BRANCHES.map(b => <option key={b} value={b} />)}
-          </datalist>
+          {mobile ? (
+            <button
+              type="button"
+              onClick={() => { setBranchSearch(''); setBranchPickerOpen(true); }}
+              style={{
+                ...inputCss,
+                textAlign: 'left',
+                color: branch ? 'var(--c-gray-900)' : 'var(--c-gray-400)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                minHeight: 44,
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {branch || 'Выберите склад / филиал...'}
+              </span>
+              <span style={{ flexShrink: 0, color: 'var(--c-gray-400)', fontSize: 12 }}>▾</span>
+            </button>
+          ) : (
+            <>
+              <input
+                type="text"
+                list="branch-options"
+                placeholder="Начните вводить название..."
+                value={branch}
+                onChange={e => { setBranch(e.target.value); setFieldErrors(p => ({ ...p, branch: '' })); }}
+                style={inputCss}
+              />
+              <datalist id="branch-options">
+                {BRANCHES.map(b => <option key={b} value={b} />)}
+              </datalist>
+            </>
+          )}
           {fieldErrors.branch && <div style={errCss}>{fieldErrors.branch}</div>}
         </div>
 
@@ -656,6 +700,88 @@ export const ClientCreateTicket: React.FC<Props> = ({ goto, onSubmit, mobile }) 
           {auxPanel}
         </div>
       </div>
+
+      {}
+      {branchPickerOpen && (
+        <div
+          onClick={() => setBranchPickerOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-surface, #fff)',
+              borderTopLeftRadius: 16, borderTopRightRadius: 16,
+              maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.2)',
+            }}
+          >
+            {}
+            <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--c-gray-300, #D1D5DB)' }} />
+            </div>
+
+            {}
+            <div style={{ padding: '4px 16px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-gray-900)' }}>Склад / филиал</span>
+                <button
+                  type="button"
+                  onClick={() => setBranchPickerOpen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-gray-500)', padding: 4, fontSize: 18, lineHeight: 1 }}
+                >
+                  <CloseOutlined />
+                </button>
+              </div>
+              <input
+                type="text"
+                autoFocus
+                placeholder="Поиск по городу или адресу..."
+                value={branchSearch}
+                onChange={e => setBranchSearch(e.target.value)}
+                style={{ ...inputCss, minHeight: 44 }}
+              />
+            </div>
+
+            {}
+            <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', flex: 1, padding: '4px 0 8px' }}>
+              {filteredBranches.length === 0 ? (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--c-gray-400)', fontSize: 14 }}>
+                  Ничего не найдено
+                </div>
+              ) : (
+                filteredBranches.map(b => {
+                  const selected = b === branch;
+                  return (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => selectBranch(b)}
+                      style={{
+                        width: '100%', textAlign: 'left',
+                        padding: '14px 16px', minHeight: 52,
+                        background: selected ? '#EFF6FF' : 'transparent',
+                        border: 'none', borderBottom: '1px solid var(--border-subtle)',
+                        cursor: 'pointer', fontSize: 14, lineHeight: 1.4,
+                        color: selected ? '#1D4ED8' : 'var(--c-gray-800)',
+                        fontWeight: selected ? 600 : 400,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                      }}
+                    >
+                      <span>{b}</span>
+                      {selected && <span style={{ flexShrink: 0, color: '#1D4ED8' }}>✓</span>}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

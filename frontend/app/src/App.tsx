@@ -81,6 +81,7 @@ const SCREENS_BY_ROLE: Record<Role, Array<{ id: string; label: string; crumbs: s
     { id: 'profile',       label: 'Профиль',        crumbs: ['Профиль'] },
   ],
   admin: [
+    { id: 'analytics', label: 'Аналитика',       crumbs: ['Аналитика'] },
     { id: 'users',     label: 'Пользователи',   crumbs: ['Администрирование', 'Пользователи'] },
     { id: 'teams',     label: 'Команды',         crumbs: ['Администрирование', 'Команды'] },
     { id: 'audit-log', label: 'Журнал действий', crumbs: ['Администрирование', 'Журнал'] },
@@ -175,6 +176,7 @@ const renderScreen = (
   }
 
   if (role === 'admin') {
+    if (screen === 'analytics') return <AnalyticsScreen />;
     if (screen === 'users')     return <AdminScreen subscreen="users" />;
     if (screen === 'teams')     return <AdminScreen subscreen="teams" />;
     if (screen === 'audit-log') return <AdminScreen subscreen="audit-log" />;

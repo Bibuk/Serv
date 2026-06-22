@@ -18,6 +18,21 @@ const STATUS_META: Array<{ status: string; color: string; label: string }> = [
   { status: 'archive',  color: '#9CA3AF', label: 'Архив' },
 ];
 
+const TICKET_STATUS_META: Array<{ status: string; color: string; label: string }> = [
+  { status: 'new',      color: '#2563EB', label: 'Новые' },
+  { status: 'inprog',   color: '#D97706', label: 'В обработке' },
+  { status: 'accepted', color: '#0D9488', label: 'В работе' },
+  { status: 'closed',   color: '#059669', label: 'Закрыты' },
+  { status: 'rejected', color: '#DC2626', label: 'Отклонены' },
+];
+
+const PRIORITY_META: Record<string, { color: string; label: string }> = {
+  critical: { color: '#DC2626', label: 'Критичный' },
+  high:     { color: '#F97316', label: 'Высокий' },
+  medium:   { color: '#2563EB', label: 'Средний' },
+  low:      { color: '#9CA3AF', label: 'Низкий' },
+};
+
 
 const Legend: React.FC<{ items: Array<{ v: number; color: string; label: string }> }> = ({ items }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -40,10 +55,23 @@ const PERIOD_OPTIONS = [
 type Period = typeof PERIOD_OPTIONS[number]['id'];
 
 export const AnalyticsScreen: React.FC = () => {
-  const tasks = useAppStore(s => s.tasks);
+  const allTasks = useAppStore(s => s.tasks);
   const tickets = useAppStore(s => s.tickets);
+  const role = useAppStore(s => s.role);
+  const currentUser = useAppStore(s => s.currentUser);
   const servicesQ = useQuery({ queryKey: ['services'], queryFn: () => getServices() });
   const slaLookup = React.useMemo(() => makeServiceLookup(servicesQ.data ?? []), [servicesQ.data]);
+
+  const isTeamlead = role === 'teamlead';
+  const isManagerOrAdmin = role === 'manager' || role === 'admin';
+  const myTeam = currentUser?.team ?? '';
+
+  // Teamlead sees only their own team; manager/admin see everything.
+  const tasks = React.useMemo(
+    () => (isTeamlead && myTeam ? allTasks.filter(t => t.team === myTeam) : allTasks),
+    [allTasks, isTeamlead, myTeam],
+  );
+
   const [period, setPeriod] = React.useState<Period>('30d');
   const [showPeriodMenu, setShowPeriodMenu] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -140,6 +168,36 @@ export const AnalyticsScreen: React.FC = () => {
   }));
   const maxTeam = Math.max(...teamBars.map(b => b.value), 1);
 
+  // Teamlead: workload per team member, from active subtasks across scoped tasks.
+  const workerLoad = React.useMemo(() => {
+    const acc: Record<string, { active: number; done: number }> = {};
+    filteredTasks.forEach(t => (t.subtasks ?? []).forEach(s => {
+      const name = s.workerName || s.worker || '—';
+      if (!acc[name]) acc[name] = { active: 0, done: 0 };
+      if (s.status === 'done') acc[name].done += 1;
+      else acc[name].active += 1;
+    }));
+    return Object.entries(acc)
+      .map(([label, v]) => ({ label, ...v, total: v.active + v.done }))
+      .sort((a, b) => b.active - a.active);
+  }, [filteredTasks]);
+  const maxWorkerLoad = Math.max(...workerLoad.map(w => w.total), 1);
+
+  // Manager/admin: client ticket funnel + priority breakdown.
+  const ticketStats = React.useMemo(() => {
+    const cutoffStr = period === 'all'
+      ? ''
+      : (() => { const c = new Date(); c.setDate(c.getDate() - (period === '7d' ? 7 : period === '30d' ? 30 : 90)); return c.toISOString().slice(0, 10); })();
+    const scoped = period === 'all' ? tickets : tickets.filter(t => (t.created ?? '').slice(0, 10) >= cutoffStr);
+    const byStatus = TICKET_STATUS_META
+      .map(m => ({ ...m, v: scoped.filter(t => t.status === m.status).length }))
+      .filter(s => s.v > 0);
+    const byPriority = (['critical', 'high', 'medium', 'low'] as const)
+      .map(p => ({ priority: p, v: scoped.filter(t => t.priority === p).length }))
+      .filter(p => p.v > 0);
+    return { total: scoped.length, byStatus, byPriority };
+  }, [tickets, period]);
+
   const periodLabel = PERIOD_OPTIONS.find(p => p.id === period)?.label ?? '';
 
   return (
@@ -147,8 +205,14 @@ export const AnalyticsScreen: React.FC = () => {
       {}
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="page-title" style={{ margin: 0 }}>Аналитика</h1>
-          <p className="page-sub muted" style={{ margin: 0, marginTop: 2 }}>Сводка за период</p>
+          <h1 className="page-title" style={{ margin: 0 }}>
+            {isTeamlead ? 'Аналитика команды' : 'Аналитика'}
+          </h1>
+          <p className="page-sub muted" style={{ margin: 0, marginTop: 2 }}>
+            {isTeamlead
+              ? (myTeam ? `Команда «${myTeam}» · сводка за период` : 'Сводка за период')
+              : 'Сводка по всем командам за период'}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ position: 'relative' }} ref={menuRef}>
@@ -300,32 +364,103 @@ export const AnalyticsScreen: React.FC = () => {
         </div>
 
         {}
-        <div className="card">
-          <div className="card__head">
-            <span className="card__title">Нагрузка команд</span>
-            <span className="card__sub muted">задач</span>
-          </div>
-          <div className="card__body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {teamBars.map((b) => (
-              <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 12, color: 'var(--c-gray-600)', width: 70, flexShrink: 0 }}>{b.label}</span>
-                <div style={{ flex: 1, height: 8, background: 'var(--c-gray-100)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${(b.value / maxTeam) * 100}%`,
-                      background: b.color,
-                      borderRadius: 4,
-                      transition: 'width 0.4s',
-                    }}
-                  />
+        {isTeamlead ? (
+          <div className="card">
+            <div className="card__head">
+              <span className="card__title">Загрузка сотрудников</span>
+              <span className="card__sub muted">активные · всего подзадач</span>
+            </div>
+            <div className="card__body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {workerLoad.length === 0 ? (
+                <span style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Нет подзадач за период</span>
+              ) : workerLoad.map(w => (
+                <div key={w.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--c-gray-600)', width: 90, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.label}</span>
+                  <div style={{ flex: 1, height: 8, background: 'var(--c-gray-100)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ height: '100%', width: `${(w.active / maxWorkerLoad) * 100}%`, background: '#D97706', transition: 'width 0.4s' }} />
+                    <div style={{ height: '100%', width: `${(w.done / maxWorkerLoad) * 100}%`, background: '#059669', transition: 'width 0.4s' }} />
+                  </div>
+                  <span className="mono" style={{ fontSize: 12, color: 'var(--c-gray-700)', width: 48, textAlign: 'right', flexShrink: 0 }}>{w.active}/{w.total}</span>
                 </div>
-                <span className="mono" style={{ fontSize: 12, color: 'var(--c-gray-700)', width: 24, textAlign: 'right', flexShrink: 0 }}>{b.value}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            <div className="card__head">
+              <span className="card__title">Нагрузка команд</span>
+              <span className="card__sub muted">задач</span>
+            </div>
+            <div className="card__body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {teamBars.map((b) => (
+                <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--c-gray-600)', width: 70, flexShrink: 0 }}>{b.label}</span>
+                  <div style={{ flex: 1, height: 8, background: 'var(--c-gray-100)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${(b.value / maxTeam) * 100}%`,
+                        background: b.color,
+                        borderRadius: 4,
+                        transition: 'width 0.4s',
+                      }}
+                    />
+                  </div>
+                  <span className="mono" style={{ fontSize: 12, color: 'var(--c-gray-700)', width: 24, textAlign: 'right', flexShrink: 0 }}>{b.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isManagerOrAdmin && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="card">
+            <div className="card__head">
+              <span className="card__title">Заявки клиентов по статусам</span>
+              <span className="card__sub muted">{ticketStats.total} за период</span>
+            </div>
+            <div className="card__body" style={{ display: 'flex', alignItems: 'center', gap: 24, padding: 16 }}>
+              {ticketStats.total === 0 ? (
+                <span style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Нет заявок за период</span>
+              ) : (
+                <>
+                  <Donut slices={ticketStats.byStatus.map(s => ({ v: s.v, color: s.color, label: s.label }))} value={ticketStats.total} label="заявок" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Legend items={ticketStats.byStatus.map(s => ({ v: s.v, color: s.color, label: s.label }))} />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card__head">
+              <span className="card__title">Заявки по приоритету</span>
+            </div>
+            <div className="card__body" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ticketStats.byPriority.length === 0 ? (
+                <span style={{ fontSize: 13, color: 'var(--c-gray-400)' }}>Нет заявок за период</span>
+              ) : (() => {
+                const maxP = Math.max(...ticketStats.byPriority.map(p => p.v), 1);
+                return ticketStats.byPriority.map(p => {
+                  const meta = PRIORITY_META[p.priority];
+                  return (
+                    <div key={p.priority} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 12, color: 'var(--c-gray-600)', width: 80, flexShrink: 0 }}>{meta.label}</span>
+                      <div style={{ flex: 1, height: 8, background: 'var(--c-gray-100)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(p.v / maxP) * 100}%`, background: meta.color, borderRadius: 4, transition: 'width 0.4s' }} />
+                      </div>
+                      <span className="mono" style={{ fontSize: 12, color: 'var(--c-gray-700)', width: 24, textAlign: 'right', flexShrink: 0 }}>{p.v}</span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {}
       <div className="card">

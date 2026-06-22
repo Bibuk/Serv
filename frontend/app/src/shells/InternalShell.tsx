@@ -46,6 +46,8 @@ const INTERNAL_NAV: Record<string, Array<{
     { id: 'profile',       label: 'Профиль',        icon: 'user' },
   ],
   admin: [
+    { section: 'Обзор' },
+    { id: 'analytics', label: 'Аналитика', icon: 'chart' },
     { section: 'Администрирование' },
     { id: 'users',     label: 'Пользователи',   icon: 'users' },
     { id: 'teams',     label: 'Команды',         icon: 'team' },

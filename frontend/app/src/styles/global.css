@@ -1051,7 +1051,10 @@ input, textarea, select { font-family: inherit; }
   gap: 2px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tabs__item {
   padding: 9px 14px;
   font-size: 13px;
@@ -1063,6 +1066,8 @@ input, textarea, select { font-family: inherit; }
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tabs__item:hover { color: var(--c-gray-900); }
 .tabs__item[data-active='true'] {

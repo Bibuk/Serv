@@ -5,20 +5,19 @@ import { useAppStore } from '../store/appStore';
 import {
   getTaskFiles, uploadTaskFile, deleteTaskFile,
   getSubtaskFiles, uploadSubtaskFile, deleteSubtaskFile,
+  getTicketFiles, uploadTicketFile, deleteTicketFile,
 } from '../api';
 import type { FileAttachment } from '../api';
 
-type OwnerKind = 'task' | 'subtask';
+type OwnerKind = 'task' | 'subtask' | 'ticket';
 
 interface AttachmentsProps {
   kind: OwnerKind;
   id: string;
   canDelete?: boolean;
   canUpload?: boolean;
-  // Collapsible header (used in dense subtask lists); otherwise always open.
   collapsible?: boolean;
   defaultOpen?: boolean;
-  // Denser styling for inline subtask rows.
   compact?: boolean;
   title?: string;
 }
@@ -29,13 +28,12 @@ const formatSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
 };
 
-// A single React Query key per owner so every place that renders the same
-// task/subtask shares one cache entry — uploads and deletes propagate live.
 const filesKey = (kind: OwnerKind, id: string) => ['attachments', kind, id];
 
 const api = {
   task:    { list: getTaskFiles,    upload: uploadTaskFile,    remove: deleteTaskFile,    base: 'tasks' },
   subtask: { list: getSubtaskFiles, upload: uploadSubtaskFile, remove: deleteSubtaskFile, base: 'subtasks' },
+  ticket:  { list: getTicketFiles,  upload: uploadTicketFile,  remove: deleteTicketFile,  base: 'tickets' },
 } as const;
 
 export const Attachments: React.FC<AttachmentsProps> = ({
