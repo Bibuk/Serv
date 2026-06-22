@@ -8,6 +8,7 @@ import { Stat, Donut, PriorityBadge } from '../../components';
 import { useAppStore } from '../../store/appStore';
 import { teamColor } from '../../utils/teamColor';
 import { getAnalyticsDashboard, type AnalyticsPeriod } from '../../api';
+import { exportAnalyticsReport } from '../../utils/reportExport';
 
 const TASK_STATUS_META: Record<string, { color: string; label: string }> = {
   inprog:   { color: '#D97706', label: 'В работе' },
@@ -178,7 +179,12 @@ export const AnalyticsScreen: React.FC = () => {
               </div>
             )}
           </div>
-          <button className="btn btn--primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => window.print()}>
+          <button
+            className="btn btn--primary"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            disabled={!d}
+            onClick={() => d && exportAnalyticsReport(d, periodLabel)}
+          >
             <PrinterOutlined /> PDF-отчёт
           </button>
         </div>

@@ -6,6 +6,7 @@ import { SidebarIcon } from '../../shells';
 import { ruDate } from '../../utils/helpers';
 import { teamColor } from '../../utils/teamColor';
 import { taskSLA, makeServiceLookup } from '../../utils/sla';
+import { exportTasksCSV } from '../../utils/reportExport';
 import { getServices } from '../../api';
 
 interface Props {
@@ -15,18 +16,6 @@ interface Props {
   tasks: Task[];
   tickets: Ticket[];
 }
-
-const exportTasksCSV = (tasks: Task[]) => {
-  const rows = [
-    ['ID', 'Название', 'Статус', 'Приоритет', 'Команда', 'Дедлайн', 'Создана'],
-    ...tasks.map(t => [t.id, t.title, t.status, t.priority, t.team, t.deadline, t.created]),
-  ];
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `tasks-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-};
 
 export const ManagerDashboard: React.FC<Props> = ({ goto, openDrawer, openCreate, tasks, tickets }) => {
   const [period, setPeriod] = React.useState<'7d' | '30d' | 'q'>('30d');

@@ -334,6 +334,7 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
                         {colTasks.map(task => {
                           const totalSubs = task.subtasks.length;
                           const doneSubs = task.subtasks.filter(s => s.status === 'done').length;
+                          const blockedSubs = task.subtasks.filter(s => s.status === 'blocked').length;
                           return (
                             <div
                               key={task.id}
@@ -359,6 +360,12 @@ export const TeamleadDashboard: React.FC<Props> = ({ openDrawer, openDecompose, 
                                   <div style={{ height: 3, background: 'var(--c-gray-200)', borderRadius: 2 }}>
                                     <div style={{ height: '100%', width: `${Math.round(doneSubs / totalSubs * 100)}%`, background: doneSubs === totalSubs ? 'var(--c-success)' : 'var(--c-blue-500)', borderRadius: 2, transition: 'width 200ms' }} />
                                   </div>
+                                  {blockedSubs > 0 && (
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 6, fontSize: 10, fontWeight: 600, color: '#7C3AED' }}>
+                                      <SidebarIcon name="alertTri" size={10} />
+                                      {blockedSubs} заблокировано
+                                    </div>
+                                  )}
                                 </div>
                               )}
 

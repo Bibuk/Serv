@@ -32,6 +32,7 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
 
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editForm, setEditForm] = React.useState<NewSubtaskForm>(emptyForm);
+  const [statusFilter, setStatusFilter] = React.useState<'all' | SubtaskStatus>('all');
 
   const taskQ = useQuery({ queryKey: ['task', taskId], queryFn: () => getTask(taskId), enabled: !!taskId, retry: false });
   const task = taskQ.data;
@@ -144,6 +145,28 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
   const doneSubs = subtasks.filter(s => s.status === 'done').length;
   const totalSubs = subtasks.length;
   const pct = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
+  const blockedSubs = subtasks.filter(s => s.status === 'blocked').length;
+
+  // Surface work that needs the lead's attention first (blocked → to-do →
+  // in progress) and sink confirmed (done) subtasks to the bottom.
+  const SUBTASK_ORDER: Record<SubtaskStatus, number> = { blocked: 0, todo: 1, inprog: 2, done: 3 };
+  const statusCounts: Record<SubtaskStatus, number> = {
+    todo: subtasks.filter(s => s.status === 'todo').length,
+    inprog: subtasks.filter(s => s.status === 'inprog').length,
+    blocked: blockedSubs,
+    done: doneSubs,
+  };
+  const FILTER_CHIPS: { id: 'all' | SubtaskStatus; label: string }[] = [
+    { id: 'all', label: 'Все' },
+    { id: 'todo', label: 'К выполнению' },
+    { id: 'inprog', label: 'В работе' },
+    { id: 'blocked', label: 'Заблокировано' },
+    { id: 'done', label: 'Выполнено' },
+  ];
+  const visibleSubtasks = subtasks
+    .filter(s => statusFilter === 'all' || s.status === statusFilter)
+    .slice()
+    .sort((a, b) => SUBTASK_ORDER[a.status] - SUBTASK_ORDER[b.status]);
 
   return (
     <div>
@@ -203,18 +226,53 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
         {}
         <div className="card">
-          <div className="card__head">
+          <div className="card__head" style={{ flexWrap: 'wrap', gap: 8 }}>
             <span className="card__title">Подзадачи</span>
+            {blockedSubs > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, background: '#F5F3FF', color: '#7C3AED', padding: '2px 8px', borderRadius: 999 }}>
+                <SidebarIcon name="alertTri" size={11} /> {blockedSubs} заблокировано
+              </span>
+            )}
             <span style={{ fontSize: 11, fontWeight: 600, background: 'var(--c-gray-100)', color: 'var(--c-gray-600)', padding: '2px 8px', borderRadius: 999 }}>{totalSubs}</span>
           </div>
+          {totalSubs > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 16px 12px' }}>
+              {FILTER_CHIPS.map(chip => {
+                const count = chip.id === 'all' ? totalSubs : statusCounts[chip.id];
+                const active = statusFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => setStatusFilter(chip.id)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+                      fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 999,
+                      border: active ? '1px solid var(--c-blue-500)' : '1px solid var(--border-subtle)',
+                      background: active ? 'var(--c-blue-50)' : '#fff',
+                      color: active ? 'var(--c-blue-700, #1D4ED8)' : 'var(--c-gray-600)',
+                    }}
+                  >
+                    {chip.label}
+                    <span style={{ fontSize: 10, fontWeight: 600, color: active ? 'var(--c-blue-600)' : 'var(--c-gray-400)' }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {subtasks.length === 0 && (
               <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--c-gray-400)', fontSize: 13 }}>
                 Подзадачи не добавлены. Начните с добавления первой подзадачи.
               </div>
             )}
-            {subtasks.map(sub => {
+            {subtasks.length > 0 && visibleSubtasks.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--c-gray-400)', fontSize: 13 }}>
+                Нет подзадач в выбранном статусе.
+              </div>
+            )}
+            {visibleSubtasks.map(sub => {
               const isDone = sub.status === 'done';
+              const isBlocked = sub.status === 'blocked';
               const name = memberName(sub);
               const isEditing = editingId === sub.id;
 
@@ -266,13 +324,14 @@ export const DecomposeScreen: React.FC<Props> = ({ taskId, tasks, openDrawer }) 
               }
 
               return (
-                <div key={sub.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid var(--border-subtle)', borderRadius: 8, background: isDone ? 'var(--c-gray-50)' : '#fff' }}>
+                <div key={sub.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid var(--border-subtle)', borderLeft: isBlocked ? '3px solid #7C3AED' : '1px solid var(--border-subtle)', borderRadius: 8, background: isDone ? 'var(--c-gray-50)' : '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input
                     type="checkbox"
                     checked={isDone}
                     disabled={toggleM.isPending}
                     onChange={() => toggleM.mutate({ id: sub.id, done: !isDone, prevStatus: sub.status })}
+                    title={isDone ? 'Снять отметку «Выполнено»' : 'Подтвердить выполнение (доступно только тимлиду)'}
                     style={{ cursor: 'pointer', width: 16, height: 16, flexShrink: 0 }}
                   />
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: isDone ? 'var(--c-gray-400)' : 'var(--c-gray-800)', textDecoration: isDone ? 'line-through' : 'none' }}>

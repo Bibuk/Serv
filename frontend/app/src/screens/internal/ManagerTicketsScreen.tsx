@@ -10,6 +10,7 @@ import { SidebarIcon } from '../../shells';
 import { useAppStore } from '../../store/appStore';
 import { updateTicketStatus, updateTicketPriority, rejectTicket, getTicketComments, addTicketComment, getServices, getApplications } from '../../api';
 import { clampPriority } from '../../utils/serviceMeta';
+import { exportTicketsCSV } from '../../utils/reportExport';
 import type { Service, App } from '../../types';
 
 interface Props {
@@ -30,17 +31,6 @@ function buildPrefillFromTicket(ticket: Ticket, apps: App[], services: Service[]
   };
 }
 
-const exportTicketsCSV = (tickets: Ticket[]) => {
-  const rows = [
-    ['ID', 'Название', 'Статус', 'Приоритет', 'Приложение', 'Создана', 'Обновлена'],
-    ...tickets.map(t => [t.id, t.title, t.status, t.priority, t.app, t.created, t.updated]),
-  ];
-  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `tickets-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-};
 
 const ACTIONS: Record<string, Array<{ to: TicketStatus | 'reject'; label: string; primary?: boolean; danger?: boolean }>> = {
   new:      [{ to: 'inprog', label: 'Взять в обработку', primary: true }, { to: 'reject', label: 'Отклонить', danger: true }],

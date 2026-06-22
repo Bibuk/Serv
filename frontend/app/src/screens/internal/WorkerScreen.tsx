@@ -68,14 +68,26 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
     setDraggingId(id);
   };
   const onDragEnd = () => { setDraggingId(null); setDropTarget(null); };
-  const onDragOver = (colId: string) => (e: React.DragEvent) => { e.preventDefault(); setDropTarget(colId); };
+  const onDragOver = (colId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    // "Выполнено" is teamlead-only — don't invite a drop there.
+    if (colId === 'done') return;
+    setDropTarget(colId);
+  };
   const onDragLeave = () => setDropTarget(null);
   const onDrop = (colStatus: SubtaskStatus) => (e: React.DragEvent) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain');
     const sub = allSubtasks.find(s => s.id === id);
-    if (sub && sub.status !== colStatus) setStatus(sub, colStatus);
     setDraggingId(null); setDropTarget(null);
+    if (!sub || sub.status === colStatus) return;
+    // Completion is confirmed by the teamlead — a worker can't move a subtask
+    // into "Выполнено", nor reopen one the teamlead already closed.
+    if (colStatus === 'done' || sub.status === 'done') {
+      setToast({ kind: 'info', msg: 'Отметить подзадачу выполненной может только тимлид' });
+      return;
+    }
+    setStatus(sub, colStatus);
   };
 
 
@@ -129,24 +141,19 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
             </button>
           )}
           {sub.status === 'inprog' && (
-            <>
-              <button className="btn btn--secondary btn--sm" disabled={statusM.isPending} onClick={() => setStatus(sub, 'blocked')} title="Я заблокирован — жду внешнего действия">
-                <SidebarIcon name="alertTri" size={12} /> Заблокировано
-              </button>
-              <button
-                className="btn btn--sm"
-                disabled={statusM.isPending}
-                onClick={() => setStatus(sub, 'done')}
-                style={{ background: 'var(--c-success)', borderColor: 'var(--c-success)', color: '#fff' }}
-              >
-                <SidebarIcon name="check" size={12} /> Выполнено
-              </button>
-            </>
+            <button className="btn btn--secondary btn--sm" disabled={statusM.isPending} onClick={() => setStatus(sub, 'blocked')} title="Я заблокирован — жду внешнего действия">
+              <SidebarIcon name="alertTri" size={12} /> Заблокировано
+            </button>
           )}
           {sub.status === 'blocked' && (
             <button className="btn btn--secondary btn--sm" disabled={statusM.isPending} onClick={() => setStatus(sub, 'inprog')}>
               <SidebarIcon name="zap" size={12} /> Возобновить
             </button>
+          )}
+          {sub.status === 'done' && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--c-success)', fontWeight: 500 }}>
+              <SidebarIcon name="checkCircle" size={13} /> Подтверждено тимлидом
+            </span>
           )}
         </div>
 
@@ -161,7 +168,7 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
     return (
       <div
         className={`kcard${draggingId === sub.id ? ' is-dragging' : ''}`}
-        draggable
+        draggable={sub.status !== 'done'}
         onDragStart={onDragStart(sub.id)}
         onDragEnd={onDragEnd}
         onClick={() => sub.taskId && openDrawer(sub.taskId)}
@@ -187,18 +194,24 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
           )}
           {sub.status === 'inprog' && (
             <button
-              className="btn btn--sm"
-              style={{ width: '100%', justifyContent: 'center', gap: 4, background: 'var(--c-success)', borderColor: 'var(--c-success)', color: '#fff' }}
+              className="btn btn--secondary btn--sm"
+              style={{ width: '100%', justifyContent: 'center', gap: 4 }}
               disabled={statusM.isPending}
-              onClick={() => setStatus(sub, 'done')}
+              onClick={() => setStatus(sub, 'blocked')}
+              title="Я заблокирован — жду внешнего действия"
             >
-              <SidebarIcon name="check" size={11} /> Выполнено
+              <SidebarIcon name="alertTri" size={11} /> Заблокировано
             </button>
           )}
           {sub.status === 'blocked' && (
             <button className="btn btn--secondary btn--sm" style={{ width: '100%', justifyContent: 'center', gap: 4 }} disabled={statusM.isPending} onClick={() => setStatus(sub, 'inprog')}>
               <SidebarIcon name="zap" size={11} /> Возобновить
             </button>
+          )}
+          {sub.status === 'done' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 11, color: 'var(--c-success)', fontWeight: 500, padding: '4px 0' }}>
+              <SidebarIcon name="checkCircle" size={11} /> Подтверждено тимлидом
+            </div>
           )}
         </div>
 
@@ -254,6 +267,12 @@ export const WorkerScreen: React.FC<Props> = ({ openDrawer, tasks }) => {
         <Stat label="Заблокировано" value={blockedCount} alert={blockedCount > 0} />
         <Stat label="Просрочено" value={overdueCount} alert={overdueCount > 0} />
         <Stat label="Выполнено" value={doneCount} />
+      </div>
+
+      {}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', marginBottom: 24, background: 'var(--c-blue-50)', border: '1px solid var(--c-blue-100, #DBEAFE)', borderRadius: 10, fontSize: 12.5, color: 'var(--c-blue-700, #1D4ED8)' }}>
+        <SidebarIcon name="alert" size={15} />
+        <span>Завершайте работу и переводите подзадачу в нужный статус. Отметку «Выполнено» ставит тимлид после проверки.</span>
       </div>
 
       {}

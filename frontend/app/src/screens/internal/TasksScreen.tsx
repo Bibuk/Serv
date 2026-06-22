@@ -8,6 +8,7 @@ import { ruDate } from '../../utils/helpers';
 import { useAppStore } from '../../store/appStore';
 import { archiveTask, deleteTask, getTeams, getServices, updateTaskStatus } from '../../api';
 import { matchesEntity } from '../../utils/catalog';
+import { exportTasksCSV } from '../../utils/reportExport';
 
 interface Props {
   tasks: Task[];
@@ -117,15 +118,7 @@ export const TasksScreen: React.FC<Props> = ({ tasks, openDrawer, openCreate, in
     onError: (e: Error) => setToast({ kind: 'error', msg: e.message }),
   });
 
-  const exportCSV = () => {
-    const rows = [['ID', 'Название', 'Приоритет', 'Статус', 'Дедлайн']];
-    filtered.forEach(t => rows.push([t.id, t.title, t.priority, t.status, t.deadline]));
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'tasks.csv';
-    a.click();
-  };
+  const exportCSV = () => exportTasksCSV(filtered);
 
   return (
     <div>
